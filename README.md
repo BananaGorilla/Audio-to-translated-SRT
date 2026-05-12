@@ -1,4 +1,4 @@
-# Audio-to-text-Translator# Thai translate to English
+# Thai translate to English
 This python script calls Google Gemini APIs to translate the Thai to English.
 
 ## Pre-requisites
