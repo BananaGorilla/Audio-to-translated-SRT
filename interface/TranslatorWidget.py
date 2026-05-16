@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog
 from PySide6.QtCore import QThread
 import logging
+from workers.AudioTranslator import AudioTranslatorWorker
 
 # Create logger for the TranslationWidget class
 logger = logging.getLogger(__name__)
@@ -19,8 +20,10 @@ class TranslatorWidget(QWidget):
         file_browse_layer = QHBoxLayout()
         file_browse_title = QLabel("Transcribed File:")
         self.filename_path = QLineEdit()
+        self.filename_path.setReadOnly(True)  # Make the file path display read-only
+
         file_browse_button = QPushButton("Browse")
-        # file_browse_button.clicked.connect(self.open_transcribed_file) # to be done
+        file_browse_button.clicked.connect(self.on_file_browse)
 
         file_browse_layer.addWidget(file_browse_title)
         file_browse_layer.addWidget(self.filename_path)
@@ -28,10 +31,10 @@ class TranslatorWidget(QWidget):
 
         # Start translation layer
         start_translation_button_layer = QHBoxLayout()
-        start_translation_button = QPushButton("Start translation")
-        # start_translation_button.clicked.connect(self.on_translation) # to be done
+        self.start_translation_button = QPushButton("Start translation")
+        self.start_translation_button.clicked.connect(self.on_translation) # to be done
 
-        start_translation_button_layer.addWidget(start_translation_button)
+        start_translation_button_layer.addWidget(self.start_translation_button)
 
         # Edit layer to show the translated SRT file
         edit_layer = QHBoxLayout()
@@ -57,3 +60,71 @@ class TranslatorWidget(QWidget):
         layout.addLayout(save_file_layer)
 
         logger.info("TranslatorWidget initialized succesfully")
+
+    def on_file_browse(self):
+        logger.info("File browse button clicked.")
+        # Implement file browsing logic here (e.g., using QFileDialog)
+        # After selecting a file, set the file path to self.filename_path
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Select Transcribed SRT File",              # Dialog title
+            "",                                         # Initial directory              
+            "SRT Files (*.srt);;All Files (*)"
+        )
+
+        if filepath:
+            self.filename_path.setText(filepath)
+    
+        self._load_transcribed_file()
+
+    def _load_transcribed_file(self):
+        logger.info("Open transcribed file dialog triggered.")
+
+        try:
+            with open(self.filename_path.text(), "r", encoding="utf-8") as f:
+                content = f.read()
+                self.original_language_edit_panel.setPlainText(content)
+                logger.info(f"Transcribed file loaded successfully from {self.filename_path.text()}.")
+        except Exception as e:
+            logger.error(f"Failed to load transcribed file: {e}")
+
+    def on_translation(self):
+        logger.info("Start translation button clicked.")
+        self.translated_edit_panel.setPlainText("Translating... Please wait.")
+        # Implement translation logic here (e.g., calling the translation worker)
+        self.translation_worker = AudioTranslatorWorker(
+            input_file_name=self.filename_path.text(),
+            output_file_name="translated_output.srt"
+        )
+        self.translation_thread = QThread()
+
+        self.translation_worker.moveToThread(self.translation_thread)
+
+        self.translation_thread.started.connect(self.translation_worker.run)
+        self.translation_worker.progress_updated.connect(self.on_translation_update_label)
+
+        self.translation_worker.translation_complete.connect(self.on_translation_complete)
+        self.translation_worker.translation_complete.connect(self.translation_worker.deleteLater)
+        self.translation_worker.translation_complete.connect(self.translation_thread.deleteLater)
+
+        self.translation_thread.start()
+        self.start_translation_button.setEnabled(False)
+        self.translation_thread.finished.connect(lambda: self.start_translation_button.setEnabled(True))
+
+    def on_translation_complete(self, output_file_name):
+        logger.info(f"Translation completed. Output file: {output_file_name}")
+        # Load the translated content into the translated_edit_panel
+        try:
+            with open(output_file_name, "r", encoding="utf-8") as f:
+                content = f.read()
+                self.translated_edit_panel.setPlainText(content)
+                logger.info(f"Translated file loaded successfully from {output_file_name}.")
+        except Exception as e:
+            logger.error(f"Failed to load translated file: {e}")
+        
+        self.translation_thread.quit()
+
+    def on_translation_update_label(self, message):
+        logger.info(f"Translation progress update: {message}")
+        # Update the UI with the progress message (e.g., using a QLabel or status bar)
+        self.translated_edit_panel.setPlainText(message)

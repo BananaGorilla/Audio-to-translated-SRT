@@ -5,7 +5,7 @@ from google import genai
 def create_ai_client():
     # Load environment variables from .env file
     load_dotenv()
-    api_key = os.getenv("API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
 
     client = None
 
