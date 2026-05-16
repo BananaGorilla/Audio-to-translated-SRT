@@ -1,21 +1,22 @@
 import os
-from PySide6.QtWidgets import QMainWindow, QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog
+from PySide6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog
 from workers.AudioTranscribe import AudioTranscribeWorker
-from PyQt6.QtCore import QThread
+from PySide6.QtCore import QThread
 from pathlib import Path
 import logging
 
 # Create a logger for the MainWindow class
 logger = logging.getLogger(__name__)
 
-class MainWindow(QMainWindow):
-    def __init__(self, transcribed_file_path="./output_transcribe.srt"):
-        super().__init__()
-        self.setWindowTitle("Audio Transcription Editor")
+class TranscriberWidget(QWidget):
+    def __init__(self, parent=None, transcribed_file_path="./output_transcribe.srt"):
+        super().__init__(parent)
         self.transcribed_file_path = transcribed_file_path
+        self._build_ui()
 
+    def _build_ui(self):
         # UI setup
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
 
         # Status label to show progress updates
         status_layout = QHBoxLayout()
@@ -58,12 +59,7 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(self.save_button)
 
-        container = QWidget()
-        container.setLayout(layout)
-        
-        self.setCentralWidget(container)
-
-        logger.info("MainWindow initialized successfully.")
+        logger.info("TranscriberWidget initialized successfully.")
 
     def load_output_file(self):
         logger.info(f"Loading transcribed file: {self.transcribed_file_path}")

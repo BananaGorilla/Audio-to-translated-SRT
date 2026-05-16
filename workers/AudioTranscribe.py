@@ -1,7 +1,7 @@
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 import logging
 
-from common_tools import create_ai_client
+from workers.common_tools import create_ai_client
 import config
 
 logger = logging.getLogger(__name__)
