@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog
-from PySide6.QtCore import QThread
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog
+from PyQt6.QtCore import QThread
 import logging
 from workers.AudioTranslator import AudioTranslatorWorker
 
@@ -46,12 +46,13 @@ class TranslatorWidget(QWidget):
 
         # Save file layer
         save_file_layer = QHBoxLayout()
-        save_file_title = QLabel("Save as:")
-        save_file_path = QLineEdit()
+        # save_file_title = QLabel("Save as:")
+        # save_file_path = QLineEdit()
         save_button = QPushButton("Save")
+        save_button.clicked.connect(self.save_output_file)
 
-        save_file_layer.addWidget(save_file_title)
-        save_file_layer.addWidget(save_file_path)
+        # save_file_layer.addWidget(save_file_title)
+        # save_file_layer.addWidget(save_file_path)
         save_file_layer.addWidget(save_button)
 
         layout.addLayout(file_browse_layer)
@@ -94,7 +95,6 @@ class TranslatorWidget(QWidget):
         # Implement translation logic here (e.g., calling the translation worker)
         self.translation_worker = AudioTranslatorWorker(
             input_file_name=self.filename_path.text(),
-            output_file_name="translated_output.srt"
         )
         self.translation_thread = QThread()
 
@@ -111,16 +111,10 @@ class TranslatorWidget(QWidget):
         self.start_translation_button.setEnabled(False)
         self.translation_thread.finished.connect(lambda: self.start_translation_button.setEnabled(True))
 
-    def on_translation_complete(self, output_file_name):
-        logger.info(f"Translation completed. Output file: {output_file_name}")
+    def on_translation_complete(self, translation_result):
+        logger.info(f"Translation completed.")
         # Load the translated content into the translated_edit_panel
-        try:
-            with open(output_file_name, "r", encoding="utf-8") as f:
-                content = f.read()
-                self.translated_edit_panel.setPlainText(content)
-                logger.info(f"Translated file loaded successfully from {output_file_name}.")
-        except Exception as e:
-            logger.error(f"Failed to load translated file: {e}")
+        self.translated_edit_panel.setPlainText(translation_result)
         
         self.translation_thread.quit()
 
@@ -128,3 +122,10 @@ class TranslatorWidget(QWidget):
         logger.info(f"Translation progress update: {message}")
         # Update the UI with the progress message (e.g., using a QLabel or status bar)
         self.translated_edit_panel.setPlainText(message)
+
+    def save_output_file(self):
+        logger.info("Saving changes to file.")
+        content = self.translated_edit_panel.toPlainText()
+        with open("translated_output.srt", "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info(f"Saved changes to file successfully")

@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QLabel, QMainWindow, QWidget, QTabWidget, QVBoxLayout
-from PySide6.QtCore import QThread
+from PyQt6.QtWidgets import QLabel, QMainWindow, QWidget, QTabWidget, QVBoxLayout
+from PyQt6.QtCore import QThread
 import logging
 from interface.TranscriberWidget import TranscriberWidget
 from interface.TranslatorWidget import TranslatorWidget

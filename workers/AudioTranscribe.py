@@ -38,6 +38,7 @@ class AudioTranscribeWorker(QObject):
             1
             00:00:00,000 --> 00:00:05,200
             Transcribe sentence here.
+            Do not repeat the same end timestamp to the next start timstamp. Add 1 millisecond to the next start timestamp if they are the same.
             """
     
     @pyqtSlot()
