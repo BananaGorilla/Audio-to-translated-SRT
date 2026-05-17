@@ -1,7 +1,7 @@
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 import logging
 
-from common_tools import create_ai_client
+from workers.common_tools import create_ai_client
 import config
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ class AudioTranscribeWorker(QObject):
             1
             00:00:00,000 --> 00:00:05,200
             Transcribe sentence here.
+            Do not repeat the same end timestamp to the next start timstamp. Add 1 millisecond to the next start timestamp if they are the same.
             """
     
     @pyqtSlot()

@@ -3,3 +3,4 @@
 output/*.txt
 *.srt
 audios/*.mp3
+__pycache__/**

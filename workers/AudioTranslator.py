@@ -1,61 +1,63 @@
-from google import genai
 from datetime import datetime
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from workers.common_tools import create_ai_client
+import config
+import logging
 
-class AudioTranslator:
-    def __init__(self, api_key_file_path="./GOOGLE_GENAI_API_KEY.txt", model_id="gemini-2.5-flash", output_file_name=None):
-        self.api_key_file_path = api_key_file_path
-        self.model_id = model_id
-        # if no output filename provided, create one with timestamp: translation_YYYYmmdd_HHMMSS.txt
-        if output_file_name:
-            self.output_file_name = output_file_name
+logger = logging.getLogger(__name__)
+
+class AudioTranslatorWorker(QObject):
+    # Signals that UI listens to
+    translation_complete = pyqtSignal(str)
+    progress_updated = pyqtSignal(str)
+
+    def __init__(self, input_file_name=None):
+        super().__init__()
+
+        self.client = create_ai_client()
+        # Error handling for missing AI API key
+        if not self.client:
+            logger.error("No AI client available.")
+            self.progress_updated.emit("No AI client available")
+            raise ValueError("No AI client available.")
+        
+        # Error handling for missing input file name
+        if input_file_name:
+            self.input_file_name = input_file_name
         else:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.output_file_name = f"translation_{ts}.txt"
-
-        key = None
-        try:
-            with open(self.api_key_file_path, 'r') as file:
-                key = file.read().strip()
-        except FileNotFoundError:
-            print(f"Error: The file at {self.api_key_file_path} was not found.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
-        if key:
-            self.client = genai.Client(api_key=key)
-        else:
-            self.client = None
-
-        with open(self.output_file_name, "w", encoding="utf-8") as f:
-            f.write("---Start translation---\n\n")
+            logger.error("Input file name is required for translation.")
+            self.progress_updated.emit("No input file name provided")
+            raise ValueError("Input file name is required for translation.")
 
         self.system_prompt = """
-            You are a specialized Thai-to-English translator.
-            FOUNDATIONAL RULES:
-            1. If the Thai audio is ambiguous, provide the most culturally relevant translation with bracket.
-            2. Please keep it Pali words as it is and do not translate it.
-            3. Do not include Thai words in the translation output.
-            4. Please make it friendly readable by breaking into sentences and paragraphs, and add punctuation if necessary.
+            Translate this English SRT content into Chinese.
+            If it has Pali language, please translate the Pali too and bracket the original Pali text.
+            Make it friendly readable. Keep the SRT format, and translate the text content.
             """
 
-    def process_long_audio(self, file_path):
-        if not self.client:
-            raise RuntimeError("No API client available (missing API key).")
+    @pyqtSlot()
+    def run(self):
+        logger.info("AudioTranslatorWorker started running.")
+        self.progress_updated.emit("Reading input SRT file...")
+        try:
+            with open(self.input_file_name, "r", encoding="utf-8") as f:
+                srt_content = f.read()
+        except Exception as e:
+            logger.error(f"Failed to read input file: {e}")
+            self.progress_updated.emit(f"Failed to read input file: {e}")
+            return
 
-        uploaded_file = self.client.files.upload(file=file_path)
-
-        # Generate Output (e.g., Translation)
-        # Save into the file immediately
-        print("--generate output--")
-        response = self.client.models.generate_content(
-            model=self.model_id,
-            contents=[
-                self.system_prompt,
-                uploaded_file
-            ]
-        )
-
-        translated_text = getattr(response, "text", "")
-        with open(self.output_file_name, "a", encoding="utf-8") as f:
-            f.write(translated_text)
-            f.write("\n\n")
+        self.progress_updated.emit("Prompting the AI model for translation...")
+        try:
+            response = self.client.models.generate_content(
+                model=config.MODEL_ID,
+                contents=[
+                    self.system_prompt,
+                    srt_content
+                ]
+            )
+            translation_result = response.text
+            self.translation_complete.emit(translation_result)
+        except Exception as e:
+            logger.error(f"Failed to generate translation: {e}")
+            self.progress_updated.emit(f"Failed to generate translation: {e}")
