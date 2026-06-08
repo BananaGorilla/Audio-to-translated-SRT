@@ -11,7 +11,7 @@ class AudioTranslatorWorker(QObject):
     translation_complete = pyqtSignal(str)
     progress_updated = pyqtSignal(str)
 
-    def __init__(self, input_file_name=None):
+    def __init__(self, input_file_name=None, source_language="English", target_language="Chinese"):
         super().__init__()
 
         self.client = create_ai_client()
@@ -29,14 +29,17 @@ class AudioTranslatorWorker(QObject):
             self.progress_updated.emit("No input file name provided")
             raise ValueError("Input file name is required for translation.")
 
-        self.system_prompt = """
-            Translate this English SRT content into Chinese.
+        self.source_language = source_language
+        self.target_language = target_language
+
+        self.system_prompt = f"""
+            Translate this {source_language} SRT content into {target_language}.
             If it has Pali language, please translate the Pali too and bracket the original Pali text.
             Make it friendly readable. Keep the SRT format, and translate the text content.
             """
 
     @pyqtSlot()
-    def run(self):
+    def run_on_cloud(self):
         logger.info("AudioTranslatorWorker started running.")
         self.progress_updated.emit("Reading input SRT file...")
         try:

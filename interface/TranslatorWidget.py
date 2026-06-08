@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog, QComboBox
 from PyQt6.QtCore import QThread
 import logging
 from workers.AudioTranslator import AudioTranslatorWorker
@@ -36,6 +36,25 @@ class TranslatorWidget(QWidget):
 
         start_translation_button_layer.addWidget(self.start_translation_button)
 
+        # Language selection layer with dropdowns
+        language_selection_layer = QHBoxLayout()
+        language_selection_layer.addStretch()
+        
+        original_lang_label = QLabel("Original Language:")
+        self.original_language_dropdown = QComboBox()
+        self.original_language_dropdown.addItems(["English", "Chinese"])
+        
+        translated_lang_label = QLabel("Target Language:")
+        self.translated_language_dropdown = QComboBox()
+        self.translated_language_dropdown.addItems(["English", "Chinese"])
+        
+        language_selection_layer.addWidget(original_lang_label)
+        language_selection_layer.addWidget(self.original_language_dropdown)
+        language_selection_layer.addSpacing(20)
+        language_selection_layer.addWidget(translated_lang_label)
+        language_selection_layer.addWidget(self.translated_language_dropdown)
+        language_selection_layer.addStretch()
+
         # Edit layer to show the translated SRT file
         edit_layer = QHBoxLayout()
         self.original_language_edit_panel = QTextEdit()
@@ -57,6 +76,7 @@ class TranslatorWidget(QWidget):
 
         layout.addLayout(file_browse_layer)
         layout.addLayout(start_translation_button_layer)
+        layout.addLayout(language_selection_layer)
         layout.addLayout(edit_layer)
         layout.addLayout(save_file_layer)
 
@@ -92,15 +112,25 @@ class TranslatorWidget(QWidget):
     def on_translation(self):
         logger.info("Start translation button clicked.")
         self.translated_edit_panel.setPlainText("Translating... Please wait.")
+        
+        # Read the selected dropdown options
+        original_language = self.original_language_dropdown.currentText()
+        target_language = self.translated_language_dropdown.currentText()
+        
+        logger.info(f"Original language selected: {original_language}")
+        logger.info(f"Target language selected: {target_language}")
+        
         # Implement translation logic here (e.g., calling the translation worker)
         self.translation_worker = AudioTranslatorWorker(
             input_file_name=self.filename_path.text(),
+            source_language=original_language,
+            target_language=target_language
         )
         self.translation_thread = QThread()
 
         self.translation_worker.moveToThread(self.translation_thread)
 
-        self.translation_thread.started.connect(self.translation_worker.run)
+        self.translation_thread.started.connect(self.translation_worker.run_on_cloud)
         self.translation_worker.progress_updated.connect(self.on_translation_update_label)
 
         self.translation_worker.translation_complete.connect(self.on_translation_complete)

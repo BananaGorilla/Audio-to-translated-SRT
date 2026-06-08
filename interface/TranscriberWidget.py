@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog
+from PyQt6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog, QComboBox
 from workers.AudioTranscribe import AudioTranscribeWorker
 from PyQt6.QtCore import QThread
 from pathlib import Path
@@ -41,6 +41,20 @@ class TranscriberWidget(QWidget):
         audio_file_path_layout.addWidget(self.filename_edit)
         audio_file_path_layout.addWidget(file_browse_button)
         layout.addLayout(audio_file_path_layout)
+
+        # Language selection layout
+        language_layout = QHBoxLayout()
+        language_label = QLabel("Original Audio Language:")
+        self.language_dropdown = QComboBox()
+        self.language_dropdown.addItems(["English", "Chinese"])
+        self.selected_language = "English"
+        
+        self.language_dropdown.currentTextChanged.connect(self.on_language_changed)
+        
+        language_layout.addWidget(language_label)
+        language_layout.addWidget(self.language_dropdown)
+        language_layout.addStretch()
+        layout.addLayout(language_layout)
 
         # Transcribe button
         self.transcribe_button = QPushButton("Transcribe")
@@ -112,3 +126,7 @@ class TranscriberWidget(QWidget):
 
     def on_transcribe_update_label(self, text):
         self.status_label.setText(text)
+
+    def on_language_changed(self, language):
+        self.selected_language = language
+        logger.info(f"Selected language changed to: {language}")
