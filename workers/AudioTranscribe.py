@@ -1,8 +1,12 @@
+from pathlib import Path
+
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 import logging
 
 from workers.common_tools import create_ai_client
 import config
+
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +46,14 @@ class AudioTranscribeWorker(QObject):
             Transcribe sentence here.
             Do not repeat the same end timestamp to the next start timstamp. Add 1 millisecond to the next start timestamp if they are the same.
             """
+        
+    def save_transcribed_file(self, transcribed_text):
+        with open(self.output_file_name, "a", encoding="utf-8") as f:
+            f.write(transcribed_text)
+        logger.info(f"Transcribed content saved to {self.output_file_name}.")
+
+        self.transcribe_complete.emit("Done")
+        logger.info("Transcribed content saved to file and signal emitted.")
     
     @pyqtSlot()
     def run_cloud(self):
@@ -64,8 +76,34 @@ class AudioTranscribeWorker(QObject):
         logger.info("Transcription completed successfully.")
 
         transcribed_text = getattr(response, "text", "")
-        with open(self.output_file_name, "a", encoding="utf-8") as f:
-            f.write(transcribed_text)
-        
-        self.transcribe_complete.emit("Done")
-        logger.info("Transcribed content saved to file and signal emitted.")
+        self.save_transcribed_file(transcribed_text)
+
+    @pyqtSlot()
+    def run_local(self):
+        logger.info("AudioTranscribeWorker started running in local mode.")
+        cmd = [
+            config.LOCAL_WHISPER_CLI_PATH,
+            "-m", config.LOCAL_WHISPER_MODEL_PATH,
+            "-f", self.audio_file_path,
+            "--output-srt",
+            "-ml", "42",
+            "-sow"
+        ]
+
+        self.progress_updated.emit("LOCAL Whisper Cpp is running...")
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(f"whisper.cpp exited with code {result.returncode}")
+
+        # read the generated .srt file
+        srt_path = Path(self.audio_file_path).with_suffix(".wav.srt")
+        if srt_path.exists():
+            with open(srt_path, "r", encoding="utf-8") as f:
+                transcription = f.read()
+                self.save_transcribed_file(transcription)
+

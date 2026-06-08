@@ -4,6 +4,7 @@ from workers.AudioTranscribe import AudioTranscribeWorker
 from PyQt6.QtCore import QThread
 from pathlib import Path
 import logging
+import config
 
 # Create a logger for the MainWindow class
 logger = logging.getLogger(__name__)
@@ -11,8 +12,19 @@ logger = logging.getLogger(__name__)
 class TranscriberWidget(QWidget):
     def __init__(self, parent=None, transcribed_file_path="./output_transcribe.srt"):
         super().__init__(parent)
-        self.transcribed_file_path = transcribed_file_path
+        self.transcribed_file_path = Path(transcribed_file_path)
+        self._remove_existing_transcribed_file()
         self._build_ui()
+
+    def _remove_existing_transcribed_file(self):
+        try:
+            if self.transcribed_file_path.exists():
+                self.transcribed_file_path.unlink()
+                logger.info(f"Removed existing transcribed file at: {self.transcribed_file_path}")
+            else:
+                logger.info(f"No existing transcribed file found at: {self.transcribed_file_path}")
+        except OSError as exc:
+            logger.warning(f"Failed to remove existing transcribed file: {exc}")
 
     def _build_ui(self):
         # UI setup
@@ -97,13 +109,16 @@ class TranscriberWidget(QWidget):
     def on_transcribe(self):
         logger.info("Transcription process started.")
         # Spawn worker
-        self.transcribe_worker = AudioTranscribeWorker(audio_file_path=self.audio_file_path, output_file_name=f"output_transcribe.srt")
+        self.transcribe_worker = AudioTranscribeWorker(audio_file_path=self.audio_file_path, source_language=self.selected_language, output_file_name=f"output_transcribe.srt")
         self.transcribe_thread = QThread()
 
         self.transcribe_worker.moveToThread(self.transcribe_thread)
 
         # Connect signals
-        self.transcribe_thread.started.connect(self.transcribe_worker.run)
+        if config.LOCAL_TRANSCRIBE_TOKEN == True:
+            self.transcribe_thread.started.connect(self.transcribe_worker.run_local)
+        else:
+            self.transcribe_thread.started.connect(self.transcribe_worker.run_cloud)
         self.transcribe_worker.progress_updated.connect(self.on_transcribe_update_label)
 
         self.transcribe_worker.transcribe_complete.connect(self.on_transcribe_done)
