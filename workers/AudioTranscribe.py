@@ -11,7 +11,7 @@ class AudioTranscribeWorker(QObject):
     transcribe_complete = pyqtSignal(str)
     progress_updated = pyqtSignal(str)
 
-    def __init__(self, audio_file_path=None, output_file_name=None):
+    def __init__(self, audio_file_path=None, source_language="English", output_file_name=None):
         super().__init__()
 
         self.client = create_ai_client()
@@ -22,15 +22,17 @@ class AudioTranscribeWorker(QObject):
             raise ValueError("No AI client available.")
 
         self.audio_file_path = audio_file_path
+        self.source_language = source_language
         self.output_file_name = output_file_name
+        
         # Error handling for missing audio file path
         if not self.audio_file_path:
             logger.error("Audio file path is required for transcription.")
             self.progress_updated.emit("No audio file path provided")
             raise ValueError("Audio file path is required for transcription.")
 
-        self.transcribe_prompt = """
-            Transcribe this English audio.
+        self.transcribe_prompt = f"""
+            Transcribe this {self.source_language} audio.
             If it has Pali language, please transcribe the Pali part as well, but keep the Pali text in its original script without romanization.
             Return ONLY valid SRT format with timestamps.
             Keep each subtitle block to 10 words max.
@@ -42,7 +44,7 @@ class AudioTranscribeWorker(QObject):
             """
     
     @pyqtSlot()
-    def run(self):
+    def run_cloud(self):
         logger.info("AudioTranscribeWorker started running.")
 
         self.progress_updated.emit("Uploading audio file...")
@@ -67,5 +69,3 @@ class AudioTranscribeWorker(QObject):
         
         self.transcribe_complete.emit("Done")
         logger.info("Transcribed content saved to file and signal emitted.")
-
-        
