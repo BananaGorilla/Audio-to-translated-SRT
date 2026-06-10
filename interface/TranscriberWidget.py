@@ -58,7 +58,7 @@ class TranscriberWidget(QWidget):
         language_layout = QHBoxLayout()
         language_label = QLabel("Original Audio Language:")
         self.language_dropdown = QComboBox()
-        self.language_dropdown.addItems(["English", "Chinese"])
+        self.language_dropdown.addItems(["English", "Chinese", "Thai", "Cantonese", "Bahasa Indonesia", "Malay"])
         self.selected_language = "English"
         
         self.language_dropdown.currentTextChanged.connect(self.on_language_changed)
@@ -115,10 +115,7 @@ class TranscriberWidget(QWidget):
         self.transcribe_worker.moveToThread(self.transcribe_thread)
 
         # Connect signals
-        if config.LOCAL_TRANSCRIBE_TOKEN == True:
-            self.transcribe_thread.started.connect(self.transcribe_worker.run_local)
-        else:
-            self.transcribe_thread.started.connect(self.transcribe_worker.run_cloud)
+        self.transcribe_thread.started.connect(self.transcribe_worker.run)
         self.transcribe_worker.progress_updated.connect(self.on_transcribe_update_label)
 
         self.transcribe_worker.transcribe_complete.connect(self.on_transcribe_done)

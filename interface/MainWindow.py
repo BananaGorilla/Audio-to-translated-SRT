@@ -3,6 +3,7 @@ from PyQt6.QtCore import QThread
 import logging
 from interface.TranscriberWidget import TranscriberWidget
 from interface.TranslatorWidget import TranslatorWidget
+from interface.SettingsWidget import SettingsTab
 
 # Create a logger for the MainWindow class
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         
         # Create the Transcriber tab and add it to the tab widget
+        self.tabs.addTab(SettingsTab(), "Settings")
         self.tabs.addTab(TranscriberWidget(), "Transcriber")
         self.tabs.addTab(TranslatorWidget(), "Translator")
 

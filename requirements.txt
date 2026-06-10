@@ -3,3 +3,5 @@ google-genai
 pydub
 python-dotenv
 PyQt6
+litellm
+openai

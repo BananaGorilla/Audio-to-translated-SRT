@@ -42,11 +42,11 @@ class TranslatorWidget(QWidget):
         
         original_lang_label = QLabel("Original Language:")
         self.original_language_dropdown = QComboBox()
-        self.original_language_dropdown.addItems(["English", "Chinese"])
+        self.original_language_dropdown.addItems(["English", "Simplified Chinese", "Traditional Chinese", "Thai", "Bahasa Indonesia", "Malay"])
         
         translated_lang_label = QLabel("Target Language:")
         self.translated_language_dropdown = QComboBox()
-        self.translated_language_dropdown.addItems(["English", "Chinese"])
+        self.translated_language_dropdown.addItems(["Simplified Chinese", "English", "Traditional Chinese", "Thai", "Bahasa Indonesia", "Malay"])
         
         language_selection_layer.addWidget(original_lang_label)
         language_selection_layer.addWidget(self.original_language_dropdown)
@@ -130,7 +130,7 @@ class TranslatorWidget(QWidget):
 
         self.translation_worker.moveToThread(self.translation_thread)
 
-        self.translation_thread.started.connect(self.translation_worker.run_on_cloud)
+        self.translation_thread.started.connect(self.translation_worker.run)
         self.translation_worker.progress_updated.connect(self.on_translation_update_label)
 
         self.translation_worker.translation_complete.connect(self.on_translation_complete)
