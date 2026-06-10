@@ -2,15 +2,11 @@ from enum import Enum
 
 AUDIO_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg")
 
-DEFAULT_INTERVAL = 10 * 60  # 10 minutes in seconds
-
 GEMINI_MODEL = "gemini-2.5-flash"
 OPENAI_WHISPER_MODEL = "whisper-1"
 
 LOCAL_WHISPER_CLI_PATH = # Please insert your path to the whisper.cpp executable here
 LOCAL_WHISPER_MODEL_PATH = # Please insert your path to the whisper.cpp model file here
-
-LOCAL_TRANSCRIBE_TOKEN=True
 
 TRANSCRIPTION_MODELS = {
     "Gemini Flash":   "gemini/gemini-2.5-flash",
