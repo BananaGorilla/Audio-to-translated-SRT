@@ -1,12 +1,10 @@
 from pathlib import Path
-
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 import logging
-
 from workers.common_tools import create_ai_client
 import config
-
 import subprocess
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +16,7 @@ class AudioTranscribeWorker(QObject):
     def __init__(self, audio_file_path=None, source_language="English", output_file_name=None):
         super().__init__()
 
-        self.client = create_ai_client()
+        self.client = create_ai_client(config.AIClientUsage.TRANSCRIPTION.value)
         # Error handling for missing AI API key
         if not self.client:
             logger.error("No AI client available.")
@@ -56,7 +54,16 @@ class AudioTranscribeWorker(QObject):
         logger.info("Transcribed content saved to file and signal emitted.")
     
     @pyqtSlot()
-    def run_cloud(self):
+    def run(self):
+        if os.getenv("TRANSCRIPTION_MODEL") == config.TRANSCRIPTION_MODELS["Gemini Flash"]:
+            self.run_gemini_cloud()
+        elif os.getenv("TRANSCRIPTION_MODEL") == config.TRANSCRIPTION_MODELS["OpenAI Whisper"]:
+            self.run_whisper_cloud()
+        else:
+            self.run_local()
+
+    @pyqtSlot()
+    def run_gemini_cloud(self):
         logger.info("AudioTranscribeWorker started running.")
 
         self.progress_updated.emit("Uploading audio file...")
@@ -67,7 +74,7 @@ class AudioTranscribeWorker(QObject):
         # Save into the file immediately
         self.progress_updated.emit("Prompting the AI model for transcription...")
         response = self.client.models.generate_content(
-            model=config.MODEL_ID,
+            model=config.GEMINI_MODEL,
             contents=[
                 self.transcribe_prompt,
                 uploaded_file
@@ -79,16 +86,48 @@ class AudioTranscribeWorker(QObject):
         self.save_transcribed_file(transcribed_text)
 
     @pyqtSlot()
+    def run_whisper_cloud(self):
+        logger.info("AudioTranscribeWorker started running. Using OpenAI Whisper for transcription.")
+
+        self.progress_updated.emit("Uploading audio file to OpenAI Whisper...")
+        with open(self.audio_file_path, "rb") as audio_file:
+            response = self.client.audio.transcriptions.create(
+                model=config.OPENAI_WHISPER_MODEL,
+                file=audio_file,
+                response_format="srt",
+                prompt=self.transcribe_prompt,
+            )
+
+        logger.info("Transcription completed successfully.")
+
+        transcribed_text = response if isinstance(response, str) else getattr(response, "text", str(response))
+        self.save_transcribed_file(transcribed_text)
+
+    @pyqtSlot()
     def run_local(self):
         logger.info("AudioTranscribeWorker started running in local mode.")
-        cmd = [
-            config.LOCAL_WHISPER_CLI_PATH,
-            "-m", config.LOCAL_WHISPER_MODEL_PATH,
-            "-f", self.audio_file_path,
-            "--output-srt",
-            "-ml", "42",
-            "-sow"
-        ]
+
+        # Hardcoded the language code for now
+        if(self.source_language.lower() == "chinese"):
+            language_code = "zh"
+            cmd = [
+                config.LOCAL_WHISPER_CLI_PATH,
+                "-m", config.LOCAL_WHISPER_MODEL_PATH,
+                "-f", self.audio_file_path,
+                "--output-srt",
+                "-ml", "56",
+                "-sow",
+                "-l", language_code
+            ]
+        else:
+            cmd = [
+                config.LOCAL_WHISPER_CLI_PATH,
+                "-m", config.LOCAL_WHISPER_MODEL_PATH,
+                "-f", self.audio_file_path,
+                "--output-srt",
+                "-ml", "56",
+                "-sow"
+            ]
 
         self.progress_updated.emit("LOCAL Whisper Cpp is running...")
 

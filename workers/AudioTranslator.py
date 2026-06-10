@@ -1,8 +1,9 @@
-from datetime import datetime
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from workers.common_tools import create_ai_client
 import config
 import logging
+from litellm import completion
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +12,10 @@ class AudioTranslatorWorker(QObject):
     translation_complete = pyqtSignal(str)
     progress_updated = pyqtSignal(str)
 
-    def __init__(self, input_file_name=None, source_language="English", target_language="Chinese"):
+    def __init__(self, input_file_name=None, source_language="English", target_language="Simplified Chinese"):
         super().__init__()
 
-        self.client = create_ai_client()
+        self.client = create_ai_client(config.AIClientUsage.TRANSLATION.value)
         # Error handling for missing AI API key
         if not self.client:
             logger.error("No AI client available.")
@@ -29,38 +30,35 @@ class AudioTranslatorWorker(QObject):
             self.progress_updated.emit("No input file name provided")
             raise ValueError("Input file name is required for translation.")
 
-        self.source_language = source_language
-        self.target_language = target_language
+        with open(self.input_file_name, "r", encoding="utf-8") as f:
+            srt_content = f.read()
 
         self.system_prompt = f"""
-            Translate this {source_language} SRT content into {target_language}.
-            If it has Pali language, please translate the Pali too and bracket the original Pali text.
-            Make it friendly readable. Keep the SRT format, and translate the text content.
+            You are a professional translator specializing in translating subtitles and Buddhism context across different lineages. 
+            If it has Pali language, please translate the Pali too and bracket the original Pali text. 
+            Make it friendly readable, but do not change the timestamps. Keep the same format.
+            """
+        
+        self.user_prompt = f"""
+            Translate this {source_language} SRT content into {target_language}:\n\n
+            {srt_content}
             """
 
     @pyqtSlot()
-    def run_on_cloud(self):
-        logger.info("AudioTranslatorWorker started running.")
-        self.progress_updated.emit("Reading input SRT file...")
-        try:
-            with open(self.input_file_name, "r", encoding="utf-8") as f:
-                srt_content = f.read()
-        except Exception as e:
-            logger.error(f"Failed to read input file: {e}")
-            self.progress_updated.emit(f"Failed to read input file: {e}")
-            return
-
+    def run(self):
         self.progress_updated.emit("Prompting the AI model for translation...")
-        try:
-            response = self.client.models.generate_content(
-                model=config.MODEL_ID,
-                contents=[
-                    self.system_prompt,
-                    srt_content
-                ]
-            )
-            translation_result = response.text
-            self.translation_complete.emit(translation_result)
-        except Exception as e:
-            logger.error(f"Failed to generate translation: {e}")
-            self.progress_updated.emit(f"Failed to generate translation: {e}")
+        response = completion(
+            model=os.getenv("TRANSLATION_MODEL"),
+            messages=[
+                {
+                    "role": "system",
+                    "content": self.system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": self.user_prompt
+                }
+            ]
+        )
+        translation_result = response.choices[0].message.content
+        self.translation_complete.emit(translation_result)
