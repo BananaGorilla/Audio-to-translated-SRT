@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineE
 from PyQt6.QtCore import QThread
 import logging
 from workers.AudioTranslator import AudioTranslatorWorker
+from workers.SaveFileWorker import SaveFileWorker
 
 # Create logger for the TranslationWidget class
 logger = logging.getLogger(__name__)
@@ -65,20 +66,19 @@ class TranslatorWidget(QWidget):
 
         # Save file layer
         save_file_layer = QHBoxLayout()
-        # save_file_title = QLabel("Save as:")
-        # save_file_path = QLineEdit()
         save_button = QPushButton("Save")
         save_button.clicked.connect(self.save_output_file)
-
-        # save_file_layer.addWidget(save_file_title)
-        # save_file_layer.addWidget(save_file_path)
         save_file_layer.addWidget(save_button)
+
+        # Save result
+        self.save_result_label = QLabel("")
 
         layout.addLayout(file_browse_layer)
         layout.addLayout(start_translation_button_layer)
         layout.addLayout(language_selection_layer)
         layout.addLayout(edit_layer)
         layout.addLayout(save_file_layer)
+        layout.addWidget(self.save_result_label)
 
         logger.info("TranslatorWidget initialized succesfully")
 
@@ -88,9 +88,9 @@ class TranslatorWidget(QWidget):
         # After selecting a file, set the file path to self.filename_path
         filepath, _ = QFileDialog.getOpenFileName(
             self, 
-            "Select Transcribed SRT File",              # Dialog title
-            "",                                         # Initial directory              
-            "SRT Files (*.srt);;All Files (*)"
+            "Select Transcribed .srt/.txt File",                # Dialog title
+            "",                                                 # Initial directory              
+            "SRT Files (*.srt);;TXT Files (*.txt);;All Files (*)"
         )
 
         if filepath:
@@ -156,6 +156,7 @@ class TranslatorWidget(QWidget):
     def save_output_file(self):
         logger.info("Saving changes to file.")
         content = self.translated_edit_panel.toPlainText()
-        with open("translated_output.srt", "w", encoding="utf-8") as f:
-            f.write(content)
+        SaveFile = SaveFileWorker(content = content)
+        SaveFile.save_file()
+        self.save_result_label.setText("Save files successfully")
         logger.info(f"Saved changes to file successfully")

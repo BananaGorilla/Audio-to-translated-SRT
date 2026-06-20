@@ -36,7 +36,7 @@ class AudioTranslatorWorker(QObject):
         self.system_prompt = f"""
             You are a professional translator specializing in translating subtitles and Buddhism context across different lineages. 
             If it has Pali language, please translate the Pali too and bracket the original Pali text. 
-            Make it friendly readable, but do not change the timestamps. Keep the same format.
+            Make it friendly readable, but do not change the timestamps. Keep the same format, and just reply the outcome.
             """
         
         self.user_prompt = f"""
@@ -48,7 +48,7 @@ class AudioTranslatorWorker(QObject):
     def run(self):
         self.progress_updated.emit("Prompting the AI model for translation...")
         response = completion(
-            model=os.getenv("TRANSLATION_MODEL"),
+            model=os.getenv(config.SELECTED_TRANSLATION_MODEL),
             messages=[
                 {
                     "role": "system",

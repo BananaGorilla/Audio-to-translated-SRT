@@ -1,30 +1,19 @@
 import os
-from PyQt6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog, QComboBox
+from PyQt6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog, QComboBox, QCheckBox
 from workers.AudioTranscribe import AudioTranscribeWorker
 from PyQt6.QtCore import QThread
 from pathlib import Path
 import logging
 import config
+from workers.SaveFileWorker import SaveFileWorker
 
 # Create a logger for the MainWindow class
 logger = logging.getLogger(__name__)
 
 class TranscriberWidget(QWidget):
-    def __init__(self, parent=None, transcribed_file_path="./output_transcribe.srt"):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.transcribed_file_path = Path(transcribed_file_path)
-        self._remove_existing_transcribed_file()
         self._build_ui()
-
-    def _remove_existing_transcribed_file(self):
-        try:
-            if self.transcribed_file_path.exists():
-                self.transcribed_file_path.unlink()
-                logger.info(f"Removed existing transcribed file at: {self.transcribed_file_path}")
-            else:
-                logger.info(f"No existing transcribed file found at: {self.transcribed_file_path}")
-        except OSError as exc:
-            logger.warning(f"Failed to remove existing transcribed file: {exc}")
 
     def _build_ui(self):
         # UI setup
@@ -38,7 +27,6 @@ class TranscriberWidget(QWidget):
         status_layout.addWidget(status_title)
         status_layout.addWidget(self.status_label)
         status_layout.addStretch()  # Push the status to the left
-        layout.addLayout(status_layout)
 
         # UI layout for audio file path display
         self.audio_file_path = None
@@ -52,64 +40,57 @@ class TranscriberWidget(QWidget):
         audio_file_path_layout.addWidget(QLabel("Audio File:"))
         audio_file_path_layout.addWidget(self.filename_edit)
         audio_file_path_layout.addWidget(file_browse_button)
-        layout.addLayout(audio_file_path_layout)
 
         # Language selection layout
-        language_layout = QHBoxLayout()
+        transcription_setting_layout = QHBoxLayout()
         language_label = QLabel("Original Audio Language:")
         self.language_dropdown = QComboBox()
         self.language_dropdown.addItems(["English", "Chinese", "Thai", "Cantonese", "Bahasa Indonesia", "Malay"])
         self.selected_language = "English"
-        
         self.language_dropdown.currentTextChanged.connect(self.on_language_changed)
         
-        language_layout.addWidget(language_label)
-        language_layout.addWidget(self.language_dropdown)
-        language_layout.addStretch()
-        layout.addLayout(language_layout)
+        self.timestamp_checkbox = QCheckBox("Generate timestamp")
+        self.timestamp_checkbox.setChecked(True)
+
+        transcription_setting_layout.addWidget(language_label)
+        transcription_setting_layout.addWidget(self.language_dropdown)
+        transcription_setting_layout.addSpacing(30)
+        transcription_setting_layout.addWidget(self.timestamp_checkbox)
+        transcription_setting_layout.addStretch()
 
         # Transcribe button
         self.transcribe_button = QPushButton("Transcribe")
         self.transcribe_button.clicked.connect(self.on_transcribe)
-        
-        layout.addWidget(self.transcribe_button)
 
         # Text edit for displaying and editing the SRT content
         self.text_edit = QTextEdit()
-        
-        layout.addWidget(self.text_edit)
 
         # Save button
-        self.save_button = QPushButton("Save Changes")
+        self.save_button = QPushButton("Save as...")
         self.save_button.clicked.connect(self.save_output_file)
-        
+
+        layout.addLayout(status_layout)
+        layout.addLayout(audio_file_path_layout)
+        layout.addLayout(transcription_setting_layout)
+        layout.addWidget(self.transcribe_button)
+        layout.addWidget(self.text_edit)
         layout.addWidget(self.save_button)
 
         logger.info("TranscriberWidget initialized successfully.")
 
-    def load_output_file(self):
-        logger.info(f"Loading transcribed file: {self.transcribed_file_path}")
-        if os.path.exists(self.transcribed_file_path):
-            with open(self.transcribed_file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-                self.text_edit.setText(content)
-                logger.info(f"Loaded transcribed file successfully")
-        else:
-            self.text_edit.setText("File not found. Please check the path.")
-            logger.warning(f"Loaded transcribed file failed")
-
     def save_output_file(self):
         logger.info("Saving changes to file.")
         content = self.text_edit.toPlainText()
-        with open(self.transcribed_file_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        SaveFile = SaveFileWorker(content = content)
+        SaveFile.save_file()
         self.status_label.setText("File saved successfully!")
         logger.info(f"Saved changes to file successfully")
 
     def on_transcribe(self):
         logger.info("Transcription process started.")
+        print(f"{self.timestamp_checkbox.isChecked()}")
         # Spawn worker
-        self.transcribe_worker = AudioTranscribeWorker(audio_file_path=self.audio_file_path, source_language=self.selected_language, output_file_name=f"output_transcribe.srt")
+        self.transcribe_worker = AudioTranscribeWorker(audio_file_path=self.audio_file_path, source_language=self.selected_language, timestamp_needed=self.timestamp_checkbox.isChecked())
         self.transcribe_thread = QThread()
 
         self.transcribe_worker.moveToThread(self.transcribe_thread)
@@ -126,8 +107,9 @@ class TranscriberWidget(QWidget):
         self.transcribe_button.setEnabled(False)
         self.transcribe_thread.finished.connect(lambda: self.transcribe_button.setEnabled(True))
     
-    def on_transcribe_done(self):
-        self.load_output_file()
+    def on_transcribe_done(self, text):
+        self.text_edit.setText(text)
+        self.status_label.setText("Transcription complete")
         self.transcribe_thread.quit()
 
     def on_file_dialog_open_file(self):
