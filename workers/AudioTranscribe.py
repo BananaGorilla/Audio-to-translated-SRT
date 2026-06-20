@@ -13,7 +13,7 @@ class AudioTranscribeWorker(QObject):
     transcribe_complete = pyqtSignal(str)
     progress_updated = pyqtSignal(str)
 
-    def __init__(self, audio_file_path=None, source_language="English", output_file_name=None):
+    def __init__(self, audio_file_path=None, source_language="English", timestamp_needed=False):
         super().__init__()
 
         self.client = create_ai_client(config.AIClientUsage.TRANSCRIPTION.value)
@@ -25,7 +25,7 @@ class AudioTranscribeWorker(QObject):
 
         self.audio_file_path = audio_file_path
         self.source_language = source_language
-        self.output_file_name = output_file_name
+        self.timestamp_needed = timestamp_needed
         
         # Error handling for missing audio file path
         if not self.audio_file_path:
@@ -36,6 +36,10 @@ class AudioTranscribeWorker(QObject):
         self.transcribe_prompt = f"""
             Transcribe this {self.source_language} audio.
             If it has Pali language, please transcribe the Pali part as well, but keep the Pali text in its original script without romanization.
+            """
+        
+        self.transcribe_timestamp = f"""
+            
             Return ONLY valid SRT format with timestamps.
             Keep each subtitle block to 10 words max.
             Example format:
@@ -44,26 +48,22 @@ class AudioTranscribeWorker(QObject):
             Transcribe sentence here.
             Do not repeat the same end timestamp to the next start timstamp. Add 1 millisecond to the next start timestamp if they are the same.
             """
-        
-    def save_transcribed_file(self, transcribed_text):
-        with open(self.output_file_name, "a", encoding="utf-8") as f:
-            f.write(transcribed_text)
-        logger.info(f"Transcribed content saved to {self.output_file_name}.")
-
-        self.transcribe_complete.emit("Done")
-        logger.info("Transcribed content saved to file and signal emitted.")
     
     @pyqtSlot()
     def run(self):
-        if os.getenv("TRANSCRIPTION_MODEL") == config.TRANSCRIPTION_MODELS["Gemini Flash"]:
-            self.run_gemini_cloud()
-        elif os.getenv("TRANSCRIPTION_MODEL") == config.TRANSCRIPTION_MODELS["OpenAI Whisper"]:
-            self.run_whisper_cloud()
+        prompt = self.transcribe_prompt
+        if self.timestamp_needed:
+            prompt += self.transcribe_timestamp
+
+        if os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) == config.TranscriptionModelLookup["Gemini Flash"]:
+            self.run_gemini_cloud(prompt)
+        elif os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) == config.TranscriptionModelLookup["OpenAI Whisper"]:
+            self.run_whisper_cloud(prompt)
         else:
             self.run_local()
 
     @pyqtSlot()
-    def run_gemini_cloud(self):
+    def run_gemini_cloud(self, prompt):
         logger.info("AudioTranscribeWorker started running.")
 
         self.progress_updated.emit("Uploading audio file...")
@@ -76,17 +76,17 @@ class AudioTranscribeWorker(QObject):
         response = self.client.models.generate_content(
             model=config.GEMINI_MODEL,
             contents=[
-                self.transcribe_prompt,
+                prompt,
                 uploaded_file
             ]
         )
         logger.info("Transcription completed successfully.")
 
         transcribed_text = getattr(response, "text", "")
-        self.save_transcribed_file(transcribed_text)
+        self.transcribe_complete.emit(transcribed_text)
 
     @pyqtSlot()
-    def run_whisper_cloud(self):
+    def run_whisper_cloud(self, prompt):
         logger.info("AudioTranscribeWorker started running. Using OpenAI Whisper for transcription.")
 
         self.progress_updated.emit("Uploading audio file to OpenAI Whisper...")
@@ -95,39 +95,38 @@ class AudioTranscribeWorker(QObject):
                 model=config.OPENAI_WHISPER_MODEL,
                 file=audio_file,
                 response_format="srt",
-                prompt=self.transcribe_prompt,
+                prompt=prompt,
             )
 
         logger.info("Transcription completed successfully.")
 
         transcribed_text = response if isinstance(response, str) else getattr(response, "text", str(response))
-        self.save_transcribed_file(transcribed_text)
+        self.transcribe_complete.emit(transcribed_text)
 
     @pyqtSlot()
     def run_local(self):
         logger.info("AudioTranscribeWorker started running in local mode.")
 
+        cmd = [
+            config.LOCAL_WHISPER_CLI_PATH,
+            "-m", config.LOCAL_WHISPER_MODEL_PATH,
+            "-f", self.audio_file_path,
+            "-otxt",
+            "-ml", "56"
+        ]
+
+        if (self.timestamp_needed == True):
+            cmd.remove("-otxt")
+            cmd.extend(
+                ["-osrt", "-sow"]
+            )
+
         # Hardcoded the language code for now
         if(self.source_language.lower() == "chinese"):
             language_code = "zh"
-            cmd = [
-                config.LOCAL_WHISPER_CLI_PATH,
-                "-m", config.LOCAL_WHISPER_MODEL_PATH,
-                "-f", self.audio_file_path,
-                "--output-srt",
-                "-ml", "56",
-                "-sow",
-                "-l", language_code
-            ]
-        else:
-            cmd = [
-                config.LOCAL_WHISPER_CLI_PATH,
-                "-m", config.LOCAL_WHISPER_MODEL_PATH,
-                "-f", self.audio_file_path,
-                "--output-srt",
-                "-ml", "56",
-                "-sow"
-            ]
+            cmd.extend(
+                ["-l", language_code]
+            )
 
         self.progress_updated.emit("LOCAL Whisper Cpp is running...")
 
@@ -140,9 +139,13 @@ class AudioTranscribeWorker(QObject):
             raise RuntimeError(f"whisper.cpp exited with code {result.returncode}")
 
         # read the generated .srt file
-        srt_path = Path(self.audio_file_path).with_suffix(".wav.srt")
+        if self.timestamp_needed == True:
+            srt_path = f"{self.audio_file_path}" + f".srt"
+        else:
+            srt_path = f"{self.audio_file_path}" + f".txt"
+
         if srt_path.exists():
             with open(srt_path, "r", encoding="utf-8") as f:
-                transcription = f.read()
-                self.save_transcribed_file(transcription)
+                transcribed_text = f.read()
+                self.transcribe_complete.emit(transcribed_text)
 
