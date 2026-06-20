@@ -5,10 +5,8 @@ AUDIO_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg")
 GEMINI_MODEL = "gemini-2.5-flash"
 OPENAI_WHISPER_MODEL = "whisper-1"
 
-LOCAL_WHISPER_CLI_PATH = "/Users/yeankhai/work/local_llm/whisper.cpp/build/bin/whisper-cli"
-LOCAL_WHISPER_MODEL_PATH = "/Users/yeankhai/work/local_llm/whisper.cpp/models/ggml-large-v3-turbo.bin"
-# LOCAL_WHISPER_CLI_PATH = "~"
-# LOCAL_WHISPER_MODEL_PATH = "~"
+LOCAL_WHISPER_CLI_PATH = "~"
+LOCAL_WHISPER_MODEL_PATH = "~"
 
 SELECTED_TRANSCRIPTION_MODEL = "SELECTED_TRANSCRIPTION_MODEL"
 SELECTED_TRANSLATION_MODEL = "SELECTED_TRANSLATION_MODEL"
