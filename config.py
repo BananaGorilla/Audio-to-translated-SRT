@@ -16,7 +16,7 @@ SELECTED_TRANSLATION_MODEL = "SELECTED_TRANSLATION_MODEL"
 TranscriptionModelLookup = {
     "Gemini Flash":   "gemini/gemini-2.5-flash",
     "OpenAI Whisper": "openai/whisper-1",
-    "Local Whisper": "local/whisper",
+    # "Local Whisper": "local/whisper",
 }
 
 TranslationModelLookup = {
@@ -31,7 +31,6 @@ ModelProviderApiLookup = {
     "gemini": "GEMINI_API_KEY",
     "local": "LOCAL_MODEL_API_KEY"
 }
-
 
 class AIClientUsage(Enum):
     TRANSCRIPTION = 0

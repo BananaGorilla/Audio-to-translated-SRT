@@ -1,5 +1,5 @@
 # settings_tab.py
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QFormLayout, QComboBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QComboBox
 from PyQt6.QtCore import QSettings
 from dotenv import set_key
 import config
@@ -12,6 +12,18 @@ class SettingsTab(QWidget):
         super().__init__()
         self.settings = QSettings("MyApp", "AIToolbox")  # persists to OS settings store
         self.env_path = Path(__file__).resolve().parents[1] / ".env"
+
+        self.save_transcription_model = config.TranscriptionModelLookup["Gemini Flash"]
+        if(os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) != None):
+            self.save_transcription_model = os.getenv(config.SELECTED_TRANSCRIPTION_MODEL)
+            transcription_provider_name = self.save_transcription_model.split("/", 1)[0]
+            transcription_provider_env_key_name = config.ModelProviderApiLookup.get(transcription_provider_name)
+            self.transcription_api_key = os.getenv(transcription_provider_env_key_name)
+
+        self.save_translation_model = config.TranslationModelLookup["Gemini Flash"]
+        if(os.getenv(config.SELECTED_TRANSLATION_MODEL) != None):
+            self.save_translation_model = os.getenv(config.SELECTED_TRANSLATION_MODEL)
+
         self._build_ui()
 
     def _build_ui(self):
@@ -31,8 +43,7 @@ class SettingsTab(QWidget):
         for model_name, model_value in config.TranscriptionModelLookup.items():
             self.transcription_model_dropdown.addItem(model_name, model_value)
 
-        saved_model = self.settings.value("transcription_selected_model", next(iter(config.TranscriptionModelLookup.values())))
-        saved_model_index = self.transcription_model_dropdown.findData(saved_model)
+        saved_model_index = self.transcription_model_dropdown.findData(self.save_transcription_model)
         if saved_model_index >= 0:
             self.transcription_model_dropdown.setCurrentIndex(saved_model_index)
 
@@ -64,8 +75,7 @@ class SettingsTab(QWidget):
         for model_name, model_value in config.TranslationModelLookup.items():
             self.translation_model_dropdown.addItem(model_name, model_value)
 
-        saved_model = self.settings.value("translation_selected_model", next(iter(config.TranslationModelLookup.values())))
-        saved_model_index = self.translation_model_dropdown.findData(saved_model)
+        saved_model_index = self.translation_model_dropdown.findData(self.save_translation_model)
         if saved_model_index >= 0:
             self.translation_model_dropdown.setCurrentIndex(saved_model_index)
 
@@ -106,9 +116,7 @@ class SettingsTab(QWidget):
         translation_selected_model = self.translation_model_dropdown.currentData()
         translation_api_key = self.translation_api_key.text()
 
-        self.settings.setValue("transcription_selected_model", transcription_selected_model)
         self.settings.setValue("transcription_api_key", transcription_api_key)
-        self.settings.setValue("translation_selected_model", translation_selected_model)
         self.settings.setValue("translation_api_key", translation_api_key)
 
         transcription_provider_name = transcription_selected_model.split("/", 1)[0] if transcription_selected_model else ""

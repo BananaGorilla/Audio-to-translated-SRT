@@ -3,7 +3,10 @@ from workers.common_tools import create_ai_client
 import config
 import logging
 from litellm import completion
+import litellm
 import os
+
+litellm._turn_on_debug()
 
 logger = logging.getLogger(__name__)
 
