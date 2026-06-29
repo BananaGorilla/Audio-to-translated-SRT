@@ -4,7 +4,6 @@ from workers.AudioTranscribe import AudioTranscribeWorker
 from PyQt6.QtCore import QThread
 from pathlib import Path
 import logging
-import config
 from workers.SaveFileWorker import SaveFileWorker
 
 # Create a logger for the MainWindow class

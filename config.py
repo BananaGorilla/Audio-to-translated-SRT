@@ -32,7 +32,6 @@ ModelProviderApiLookup = {
     "local": "LOCAL_MODEL_API_KEY"
 }
 
-
 class AIClientUsage(Enum):
     TRANSCRIPTION = 0
     TRANSLATION = 1
