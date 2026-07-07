@@ -114,7 +114,7 @@ class AudioTranscribeWorker(QObject):
             "-otxt",
             "-ml", "56"
         ]
-
+        print(cmd)
         if (self.timestamp_needed == True):
             cmd.remove("-otxt")
             cmd.extend(
@@ -144,8 +144,7 @@ class AudioTranscribeWorker(QObject):
         else:
             srt_path = f"{self.audio_file_path}" + f".txt"
 
-        if srt_path.exists():
-            with open(srt_path, "r", encoding="utf-8") as f:
-                transcribed_text = f.read()
-                self.transcribe_complete.emit(transcribed_text)
+        with open(srt_path, "r", encoding="utf-8") as f:
+            transcribed_text = f.read()
+            self.transcribe_complete.emit(transcribed_text)
 

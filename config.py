@@ -5,12 +5,13 @@ AUDIO_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg")
 GEMINI_MODEL = "gemini-2.5-flash"
 OPENAI_WHISPER_MODEL = "whisper-1"
 
-LOCAL_WHISPER_CLI_PATH = "~"
-LOCAL_WHISPER_MODEL_PATH = "~"
+LOCAL_WHISPER_CLI_PATH = ""     # Include your local whisper CLI path
+LOCAL_WHISPER_MODEL_PATH = ""   # Include your local whisper model path
 
 SELECTED_TRANSCRIPTION_MODEL = "SELECTED_TRANSCRIPTION_MODEL"
 SELECTED_TRANSLATION_MODEL = "SELECTED_TRANSLATION_MODEL"
 
+LOCAL_LLM_GGUF_FILE_PATH = ""   # Include your local model path
 
 # Lookup tables
 TranscriptionModelLookup = {
@@ -20,9 +21,10 @@ TranscriptionModelLookup = {
 }
 
 TranslationModelLookup = {
-    "Gemini Flash":   "gemini/gemini-2.5-flash",
+    "Gemini Flash": "gemini/gemini-2.5-flash",
     "Claude Sonnet": "anthropic/claude-sonnet-4-20250514",
-    "GPT-4o":       "openai/gpt-4o",
+    "GPT-4o": "openai/gpt-4o",
+    "Local Translator": "local/translator",
 }
 
 ModelProviderApiLookup = {

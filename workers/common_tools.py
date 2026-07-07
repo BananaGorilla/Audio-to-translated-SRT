@@ -15,7 +15,7 @@ def create_ai_client(usage: int = config.AIClientUsage.TRANSCRIPTION.value):
             api_key = os.getenv("OPENAI_API_KEY")
             client = OpenAI(api_key=api_key)
         if os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) == config.TranscriptionModelLookup["Local Whisper"]:
-            api_key = os.getenv("LOCAL_WHISPER_API_KEY")
+            api_key = os.getenv("LOCAL_MODEL_API_KEY")
             client = "Local Whisper"  # Local Whisper doesn't require an API client, but we return a string to indicate local mode
     elif(usage == config.AIClientUsage.TRANSLATION.value):
         if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["Gemini Flash"]:
@@ -27,5 +27,8 @@ def create_ai_client(usage: int = config.AIClientUsage.TRANSCRIPTION.value):
         if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["GPT-4o"]:
             api_key = os.getenv("OPENAI_API_KEY")
             client = OpenAI(api_key=api_key)
+        if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["Local Translator"]:
+            api_key = os.getenv("LOCAL_MODEL_API_KEY")
+            client = "Local Model"
     
     return client
