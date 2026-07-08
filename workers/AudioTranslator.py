@@ -4,6 +4,7 @@ import config
 import logging
 from litellm import completion
 import os
+from llama_cpp import Llama
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class AudioTranslatorWorker(QObject):
         self.system_prompt = f"""
             You are a professional translator specializing in translating subtitles and Buddhism context across different lineages. 
             If it has Pali language, please translate the Pali too and bracket the original Pali text. 
-            Make it friendly readable, but do not change the timestamps. Keep the same format, and just reply the outcome.
+            Make it friendly readable, but do not change the timestamps. Keep the same format, and just reply the translation outcome.
             """
         
         self.user_prompt = f"""
@@ -46,6 +47,25 @@ class AudioTranslatorWorker(QObject):
 
     @pyqtSlot()
     def run(self):
+        if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["Local Translator"]:
+            translation_result = self.run_local()
+        else:
+            translation_result = self.run_cloud()
+
+        self.translation_complete.emit(translation_result)
+
+    @pyqtSlot()
+    def run_local(self) -> str:
+        llm = Llama(
+            model_path=config.LOCAL_LLM_GGUF_FILE_PATH,
+            n_gpu_layers=-1,
+            n_ctx=4096
+        )
+        translation_result = llm(self.system_prompt + self.user_prompt, max_tokens=50)
+        return translation_result["choices"][0]["text"]
+
+    @pyqtSlot()
+    def run_cloud(self) -> str:
         self.progress_updated.emit("Prompting the AI model for translation...")
         response = completion(
             model=os.getenv(config.SELECTED_TRANSLATION_MODEL),
@@ -60,5 +80,4 @@ class AudioTranslatorWorker(QObject):
                 }
             ]
         )
-        translation_result = response.choices[0].message.content
-        self.translation_complete.emit(translation_result)
+        return response.choices[0].message.content
