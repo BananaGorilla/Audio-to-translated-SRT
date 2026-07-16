@@ -7,6 +7,7 @@ datas, binaries, hiddenimports = collect_all('litellm')
 
 hiddenimports += ['tiktoken_ext.openai_public']
 
+binaries.append(('./venv/lib/python3.14/site-packages/llama_cpp/lib/libllama.dylib', 'llama_cpp/lib'))
 a = Analysis(
     ['main.py'],
     pathex=[],

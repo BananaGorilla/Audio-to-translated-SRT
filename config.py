@@ -23,7 +23,7 @@ TranscriptionModelLookup = {
 TranslationModelLookup = {
     "Gemini Flash": "gemini/gemini-2.5-flash",
     "Claude Sonnet": "anthropic/claude-sonnet-4-20250514",
-    "GPT-4o": "openai/gpt-4o",
+    "GPT-4o": "openai/gpt-4o-2024-11-20",
     "Local Translator": "local/translator",
 }
 
