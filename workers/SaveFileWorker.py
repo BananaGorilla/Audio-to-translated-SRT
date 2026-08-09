@@ -1,5 +1,5 @@
 import logging
-from PyQt6.QtWidgets import QFileDialog, QWidget
+from PySide6.QtWidgets import QFileDialog
 
 logger = logging.getLogger(__name__)
 
@@ -30,4 +30,3 @@ class SaveFileWorker():
                 logger.error(f"Failed to save file: {error}")
         else:
             logger.info("Save operation cancelled by user")
-

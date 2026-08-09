@@ -1,7 +1,7 @@
 import os
-from PyQt6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog, QComboBox, QCheckBox
+from PySide6.QtWidgets import QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QWidget, QLabel, QFileDialog, QComboBox, QCheckBox
 from workers.AudioTranscribe import AudioTranscribeWorker
-from PyQt6.QtCore import QThread
+from PySide6.QtCore import QThread
 from pathlib import Path
 import logging
 from workers.SaveFileWorker import SaveFileWorker

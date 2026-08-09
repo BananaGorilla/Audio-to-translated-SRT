@@ -1,6 +1,6 @@
 # settings_tab.py
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QComboBox
-from PyQt6.QtCore import QSettings
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QComboBox
+from PySide6.QtCore import QSettings
 from dotenv import set_key
 import config
 from pathlib import Path

@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog, QComboBox
-from PyQt6.QtCore import QThread
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog, QComboBox
+from PySide6.QtCore import QThread
 import logging
 from workers.AudioTranslator import AudioTranslatorWorker
 from workers.SaveFileWorker import SaveFileWorker

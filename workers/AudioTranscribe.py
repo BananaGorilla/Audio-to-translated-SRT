@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PySide6.QtCore import QObject, Signal, Slot
 import logging
 from workers.common_tools import create_ai_client
 import config
@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 
 class AudioTranscribeWorker(QObject):
     # Signals that UI listens to
-    transcribe_complete = pyqtSignal(str)
-    progress_updated = pyqtSignal(str)
+    transcribe_complete = Signal(str)
+    progress_updated = Signal(str)
+    failed = Signal(str)
 
     def __init__(self, audio_file_path=None, source_language="English", timestamp_needed=False):
         super().__init__()
@@ -49,20 +50,27 @@ class AudioTranscribeWorker(QObject):
             Do not repeat the same end timestamp to the next start timstamp. Add 1 millisecond to the next start timestamp if they are the same.
             """
     
-    @pyqtSlot()
+    @Slot()
     def run(self):
-        prompt = self.transcribe_prompt
-        if self.timestamp_needed:
-            prompt += self.transcribe_timestamp
+        try:
+            prompt = self.transcribe_prompt
+            if self.timestamp_needed:
+                prompt += self.transcribe_timestamp
 
-        if os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) == config.TranscriptionModelLookup["Gemini Flash"]:
-            self.run_gemini_cloud(prompt)
-        elif os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) == config.TranscriptionModelLookup["OpenAI Whisper"]:
-            self.run_whisper_cloud(prompt)
-        else:
-            self.run_local()
+            selected_model = os.getenv(config.SELECTED_TRANSCRIPTION_MODEL)
+            if selected_model == config.TranscriptionModelLookup["Gemini Flash"]:
+                self.run_gemini_cloud(prompt)
+            elif selected_model == config.TranscriptionModelLookup["OpenAI Whisper"]:
+                self.run_whisper_cloud(prompt)
+            elif selected_model == config.TranscriptionModelLookup["Local Whisper"]:
+                self.run_local()
+            else:
+                raise ValueError("Select and save a transcription model in Settings first.")
+        except Exception as error:
+            logger.exception("Transcription failed")
+            self.failed.emit(str(error))
 
-    @pyqtSlot()
+    @Slot()
     def run_gemini_cloud(self, prompt):
         logger.info("AudioTranscribeWorker started running.")
 
@@ -85,7 +93,7 @@ class AudioTranscribeWorker(QObject):
         transcribed_text = getattr(response, "text", "")
         self.transcribe_complete.emit(transcribed_text)
 
-    @pyqtSlot()
+    @Slot()
     def run_whisper_cloud(self, prompt):
         logger.info("AudioTranscribeWorker started running. Using OpenAI Whisper for transcription.")
 
@@ -103,9 +111,12 @@ class AudioTranscribeWorker(QObject):
         transcribed_text = response if isinstance(response, str) else getattr(response, "text", str(response))
         self.transcribe_complete.emit(transcribed_text)
 
-    @pyqtSlot()
+    @Slot()
     def run_local(self):
         logger.info("AudioTranscribeWorker started running in local mode.")
+
+        if not config.LOCAL_WHISPER_CLI_PATH or not config.LOCAL_WHISPER_MODEL_PATH:
+            raise ValueError("Configure the local Whisper executable and model paths first.")
 
         cmd = [
             config.LOCAL_WHISPER_CLI_PATH,
@@ -147,4 +158,3 @@ class AudioTranscribeWorker(QObject):
         with open(srt_path, "r", encoding="utf-8") as f:
             transcribed_text = f.read()
             self.transcribe_complete.emit(transcribed_text)
-

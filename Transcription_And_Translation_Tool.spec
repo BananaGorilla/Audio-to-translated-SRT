@@ -2,12 +2,16 @@
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_all
 
-# Automatically grab everything from litellm
+# Automatically grab dynamically imported provider and native-model packages.
 datas, binaries, hiddenimports = collect_all('litellm')
+llama_datas, llama_binaries, llama_hiddenimports = collect_all('llama_cpp')
+datas += llama_datas
+binaries += llama_binaries
+hiddenimports += llama_hiddenimports
 
-hiddenimports += ['tiktoken_ext.openai_public']
+hiddenimports += ['tiktoken_ext.openai_public', 'PySide6.QtMultimedia']
+datas += [('ui', 'ui')]
 
-binaries.append(('./venv/lib/python3.14/site-packages/llama_cpp/lib/libllama.dylib', 'llama_cpp/lib'))
 a = Analysis(
     ['main.py'],
     pathex=[],
