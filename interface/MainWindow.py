@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QTabWidget
+from PySide6.QtWidgets import QMainWindow, QTabWidget
 import logging
 from interface.TranscriberWidget import TranscriberWidget
 from interface.TranslatorWidget import TranslatorWidget

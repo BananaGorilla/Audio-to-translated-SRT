@@ -2,6 +2,7 @@ yt-dlp
 google-genai
 pydub
 python-dotenv
-PyQt6
+PySide6
 litellm
 openai
+llama-cpp-python

@@ -14,13 +14,20 @@ If you want to run this python code, make sure you have install python3.11 or ab
 > python3 -m pip install -r requirements.txt \
 > python3 main.py
 
-After that, you will see a windows pop up.
+After that, the Qt Quick desktop application will open.
+
+## User interface
+The desktop interface uses PySide6 and Qt Quick/QML. It provides guided
+workspaces for transcription, subtitle translation, model settings, output
+editing, and saving. Live translation and video voice-over are represented in
+the workspace as planned workflows so they can be added without restructuring
+the application navigation.
 
 ## Run via exec file
 This software contains the `.spec` file which allows user to generate as software and run directly on computer without installing python.
 
 To build the software,
-> pyinstall Transcription_And_Translation_Tool.spec
+> pyinstaller Transcription_And_Translation_Tool.spec
 
 It will build the exec file and you can run it directly.
 
