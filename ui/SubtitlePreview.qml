@@ -27,7 +27,6 @@ Item {
         audioOutput: AudioOutput {
             volume: volumeSlider.value
         }
-        videoOutput: videoOutput
         onPositionChanged: (position) => preview.activeSubtitle = appController.previewSubtitleAt(position)
         onSourceChanged: {
             preview.activeSubtitle = ""
@@ -78,7 +77,7 @@ Item {
 
                     Text {
                         Layout.preferredWidth: 54
-                        text: "Media"
+                        text: "Audio"
                         color: "#475569"
                         font.pixelSize: 12
                         font.weight: Font.Medium
@@ -95,7 +94,7 @@ Item {
                             anchors.leftMargin: 14
                             anchors.rightMargin: 14
                             verticalAlignment: Text.AlignVCenter
-                            text: appController.previewAudioFilePath || "Choose an audio or MP4 file"
+                            text: appController.previewAudioFilePath || "Choose an audio file"
                             color: appController.previewAudioFilePath ? "#334155" : "#94a3b8"
                             elide: Text.ElideMiddle
                             font.pixelSize: 13
@@ -185,24 +184,16 @@ Item {
                     color: "#0f172a"
                     clip: true
 
-                    VideoOutput {
-                        id: videoOutput
-                        anchors.fill: parent
-                        z: 0
-                        visible: player.hasVideo
-                        fillMode: VideoOutput.PreserveAspectFit
-                    }
-
                     Column {
                         anchors.centerIn: parent
                         z: 1
                         width: Math.min(parent.width - 64, 760)
                         spacing: 18
-                        visible: !player.hasVideo || !appController.previewSubtitleFilePath
+                        visible: preview.activeSubtitle.length === 0
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: player.playbackState === MediaPlayer.PlayingState ? "PLAYING" : "MEDIA PREVIEW"
+                            text: player.playbackState === MediaPlayer.PlayingState ? "PLAYING" : "AUDIO PREVIEW"
                             color: player.playbackState === MediaPlayer.PlayingState ? "#5eead4" : "#64748b"
                             font.pixelSize: 10
                             font.weight: Font.Bold
@@ -212,7 +203,7 @@ Item {
                         Text {
                             width: parent.width
                             text: !appController.previewAudioFilePath
-                                ? "Choose an audio or MP4 file"
+                                ? "Choose an audio file"
                                 : (!appController.previewSubtitleFilePath
                                     ? "Load an SRT file to preview synchronized subtitles"
                                     : "No subtitle at the current playback position")

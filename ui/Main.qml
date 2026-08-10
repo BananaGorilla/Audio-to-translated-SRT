@@ -20,17 +20,25 @@ ApplicationWindow {
     property var translationTargetLanguages: ["Simplified Chinese", "English", "Traditional Chinese", "Thai", "Bahasa Indonesia", "Malay"]
 
     function pageTitle() {
-        const titles = ["Transcribe audio", "Translate subtitles", "Preview subtitles", "Settings"]
+        const titles = ["Download media", "Transcribe audio", "Translate subtitles", "Preview subtitles", "Settings"]
         return titles[currentSection]
+    }
+
+    function pageDescription() {
+        if (currentSection === 0)
+            return "Save a video and create a transcription-ready audio file."
+        return "Create accurate subtitles and translations without command-line setup."
     }
 
     function selectedModelText() {
         if (currentSection === 0)
-            return "Model · " + appController.selectedTranscriptionModelLabel
+            return "Video download + audio extraction"
         if (currentSection === 1)
-            return "Model · " + appController.selectedTranslationModelLabel
+            return "Model · " + appController.selectedTranscriptionModelLabel
         if (currentSection === 2)
-            return "Audio / MP4 + SRT preview"
+            return "Model · " + appController.selectedTranslationModelLabel
+        if (currentSection === 3)
+            return "Audio + SRT preview"
         return "Configure models below"
     }
 
@@ -93,21 +101,27 @@ ApplicationWindow {
 
                 NavButton {
                     Layout.fillWidth: true
-                    text: "Transcribe"
+                    text: "Download & Extract"
                     selected: root.currentSection === 0
                     onClicked: root.currentSection = 0
                 }
                 NavButton {
                     Layout.fillWidth: true
-                    text: "Translate"
+                    text: "Transcribe"
                     selected: root.currentSection === 1
                     onClicked: root.currentSection = 1
                 }
                 NavButton {
                     Layout.fillWidth: true
-                    text: "Subtitle Preview"
+                    text: "Translate"
                     selected: root.currentSection === 2
                     onClicked: root.currentSection = 2
+                }
+                NavButton {
+                    Layout.fillWidth: true
+                    text: "Subtitle Preview"
+                    selected: root.currentSection === 3
+                    onClicked: root.currentSection = 3
                 }
 
                 Item { Layout.fillHeight: true }
@@ -142,8 +156,8 @@ ApplicationWindow {
                 NavButton {
                     Layout.fillWidth: true
                     text: "Settings"
-                    selected: root.currentSection === 3
-                    onClicked: root.currentSection = 3
+                    selected: root.currentSection === 4
+                    onClicked: root.currentSection = 4
                 }
             }
         }
@@ -173,7 +187,7 @@ ApplicationWindow {
                             font.weight: Font.DemiBold
                         }
                         Text {
-                            text: "Create accurate subtitles and translations without command-line setup."
+                            text: root.pageDescription()
                             color: "#64748b"
                             font.pixelSize: 12
                         }
@@ -203,6 +217,9 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 currentIndex: root.currentSection
+
+                // Video download and audio extraction
+                MediaDownload { }
 
                 // Transcription
                 Item {
