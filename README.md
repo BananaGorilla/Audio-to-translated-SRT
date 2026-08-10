@@ -19,9 +19,30 @@ After that, the Qt Quick desktop application will open.
 ## User interface
 The desktop interface uses PySide6 and Qt Quick/QML. It provides guided
 workspaces for transcription, subtitle translation, model settings, output
-editing, and saving. Live translation and video voice-over are represented in
-the workspace as planned workflows so they can be added without restructuring
-the application navigation.
+editing, saving, subtitle preview, and downloading a video while extracting its
+audio track.
+
+## Download video and extract audio
+
+Open the **Download & Extract** tab, paste a supported video URL, choose an
+output folder and audio format, then click **Download & extract**. By default,
+only the selected MP3, WAV, or M4A output remains. Select **Also save an H.264
+MP4 video** only when you want both files. Saved video is restricted to H.264
+MP4 so it is compatible with the built-in subtitle Preview player.
+
+This feature uses `yt-dlp` to download media and FFmpeg to merge separate video
+and audio streams and convert the audio to MP3, WAV, or M4A. FFmpeg is required.
+
+- macOS (Homebrew): `brew install ffmpeg`
+- Windows (winget): `winget install Gyan.FFmpeg`
+- Ubuntu/Debian: `sudo apt install ffmpeg`
+
+If FFmpeg is installed somewhere that is not on `PATH`, set `FFMPEG_BINARY` to
+the full path of the `ffmpeg` executable. For a standalone PyInstaller build,
+place `ffmpeg` and `ffprobe` (`.exe` on Windows) in a `bin` folder beside the
+`.spec` file before building; the spec will bundle them automatically. Ensure
+the binaries you distribute match the target operating system and comply with
+FFmpeg's license.
 
 ## Run via exec file
 This software contains the `.spec` file which allows user to generate as software and run directly on computer without installing python.

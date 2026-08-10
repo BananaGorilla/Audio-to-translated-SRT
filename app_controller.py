@@ -35,10 +35,16 @@ class AppController(QObject):
     previewSubtitleFilePathChanged = Signal()
     previewStatusChanged = Signal()
     settingsStatusChanged = Signal()
+    downloadFolderPathChanged = Signal()
+    mediaDownloadStatusChanged = Signal()
+    mediaDownloadBusyChanged = Signal()
+    mediaDownloadProgressChanged = Signal()
+    mediaDownloadOutputChanged = Signal()
     notificationRequested = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._settings = QSettings("AudioSubtitleTool", "AudioSubtitleTool")
         self._audio_file_path = ""
         self._subtitle_file_path = ""
         self._original_text = ""
@@ -60,15 +66,24 @@ class AppController(QObject):
         self._preview_subtitle_file_path = ""
         self._preview_subtitle_cues = []
         self._preview_subtitle_starts = []
-        self._preview_status = "Choose an audio or MP4 file and an SRT file"
+        self._preview_status = "Choose an audio file and an SRT file"
         self._settings_status = ""
+        default_download_folder = Path.home() / "Downloads"
+        self._download_folder_path = str(
+            self._settings.value("media_download_folder", str(default_download_folder))
+        )
+        self._media_download_status = "Ready"
+        self._media_download_busy = False
+        self._media_download_progress = 0
+        self._media_download_output = ""
 
         self._transcription_thread = None
         self._transcription_worker = None
         self._translation_thread = None
         self._translation_worker = None
+        self._media_download_thread = None
+        self._media_download_worker = None
 
-        self._settings = QSettings("AudioSubtitleTool", "AudioSubtitleTool")
         self._env_path = Path(__file__).resolve().parent / ".env"
 
     @Property("QVariantList", constant=True)
@@ -177,6 +192,26 @@ class AppController(QObject):
     def settingsStatus(self):
         return self._settings_status
 
+    @Property(str, notify=downloadFolderPathChanged)
+    def downloadFolderPath(self):
+        return self._download_folder_path
+
+    @Property(str, notify=mediaDownloadStatusChanged)
+    def mediaDownloadStatus(self):
+        return self._media_download_status
+
+    @Property(bool, notify=mediaDownloadBusyChanged)
+    def mediaDownloadBusy(self):
+        return self._media_download_busy
+
+    @Property(int, notify=mediaDownloadProgressChanged)
+    def mediaDownloadProgress(self):
+        return self._media_download_progress
+
+    @Property(str, notify=mediaDownloadOutputChanged)
+    def mediaDownloadOutput(self):
+        return self._media_download_output
+
     def _set_value(self, attribute, value, signal):
         if getattr(self, attribute) == value:
             return
@@ -221,13 +256,16 @@ class AppController(QObject):
     def choosePreviewAudioFile(self):
         file_path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select audio or MP4 file for subtitle preview",
+            "Select audio file for subtitle preview",
             "",
-            "Supported Media (*.mp3 *.wav *.m4a *.flac *.aac *.ogg *.mp4);;"
-            "Audio Files (*.mp3 *.wav *.m4a *.flac *.aac *.ogg);;"
-            "MP4 Video Files (*.mp4);;All Files (*)",
+            "Audio Files (*.mp3 *.wav *.m4a *.flac *.aac *.ogg)",
         )
         if not file_path:
+            return
+        if Path(file_path).suffix.lower() not in config.AUDIO_EXTENSIONS:
+            status = "Unsupported file — choose MP3, WAV, M4A, FLAC, AAC, or OGG audio"
+            self._set_value("_preview_status", status, self.previewStatusChanged)
+            self.notificationRequested.emit(status)
             return
 
         self._set_value(
@@ -235,7 +273,7 @@ class AppController(QObject):
             file_path,
             self.previewAudioFilePathChanged,
         )
-        status = "Ready to play" if self._preview_subtitle_cues else "Media loaded — choose an SRT file"
+        status = "Ready to play" if self._preview_subtitle_cues else "Audio loaded — choose an SRT file"
         self._set_value("_preview_status", status, self.previewStatusChanged)
 
     @Slot()
@@ -277,6 +315,120 @@ class AppController(QObject):
             status = "No valid subtitle cues found in this SRT file"
         self._set_value("_preview_status", status, self.previewStatusChanged)
         self.notificationRequested.emit(status)
+
+    @Slot()
+    def chooseDownloadFolder(self):
+        folder_path = QFileDialog.getExistingDirectory(
+            None,
+            "Choose download folder",
+            self._download_folder_path,
+        )
+        if not folder_path:
+            return
+        self._settings.setValue("media_download_folder", folder_path)
+        self._set_value(
+            "_download_folder_path",
+            folder_path,
+            self.downloadFolderPathChanged,
+        )
+
+    @Slot(str, str, bool)
+    def startMediaDownload(self, video_url, audio_format, keep_video):
+        if self._media_download_busy:
+            return
+        if not video_url.strip():
+            self._set_value(
+                "_media_download_status",
+                "Enter a video URL first",
+                self.mediaDownloadStatusChanged,
+            )
+            return
+
+        try:
+            from workers.MediaDownload import MediaDownloadWorker
+
+            worker = MediaDownloadWorker(
+                video_url=video_url,
+                output_directory=self._download_folder_path,
+                audio_format=audio_format,
+                keep_video=keep_video,
+            )
+        except Exception as error:
+            self._set_value(
+                "_media_download_status",
+                str(error),
+                self.mediaDownloadStatusChanged,
+            )
+            return
+
+        thread = QThread(self)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.progress_updated.connect(self._onMediaDownloadProgress)
+        worker.download_complete.connect(self._onMediaDownloadComplete)
+        worker.failed.connect(self._onMediaDownloadFailed)
+        worker.download_complete.connect(thread.quit)
+        worker.failed.connect(thread.quit)
+        worker.download_complete.connect(worker.deleteLater)
+        worker.failed.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._onMediaDownloadThreadFinished)
+
+        self._media_download_worker = worker
+        self._media_download_thread = thread
+        self._set_value("_media_download_busy", True, self.mediaDownloadBusyChanged)
+        self._set_value("_media_download_progress", 0, self.mediaDownloadProgressChanged)
+        self._set_value("_media_download_output", "", self.mediaDownloadOutputChanged)
+        self._set_value(
+            "_media_download_status",
+            "Starting download…",
+            self.mediaDownloadStatusChanged,
+        )
+        thread.start()
+
+    @Slot(int, str)
+    def _onMediaDownloadProgress(self, percent, message):
+        self._set_value(
+            "_media_download_progress",
+            max(0, min(100, percent)),
+            self.mediaDownloadProgressChanged,
+        )
+        self._set_value(
+            "_media_download_status",
+            message,
+            self.mediaDownloadStatusChanged,
+        )
+
+    @Slot(str, str)
+    def _onMediaDownloadComplete(self, video_path, audio_path):
+        outputs = [path for path in (video_path, audio_path) if path]
+        output_text = "\n".join(outputs)
+        self._set_value(
+            "_media_download_output",
+            output_text,
+            self.mediaDownloadOutputChanged,
+        )
+        self._set_value(
+            "_media_download_status",
+            "Download and audio extraction complete",
+            self.mediaDownloadStatusChanged,
+        )
+        self.notificationRequested.emit(f"Saved {Path(audio_path).name}")
+
+    @Slot(str)
+    def _onMediaDownloadFailed(self, message):
+        self._set_value(
+            "_media_download_status",
+            f"Download failed: {message}",
+            self.mediaDownloadStatusChanged,
+        )
+        self.notificationRequested.emit("Download failed")
+
+    @Slot()
+    def _onMediaDownloadThreadFinished(self):
+        self._set_value("_media_download_busy", False, self.mediaDownloadBusyChanged)
+        self._media_download_worker = None
+        self._media_download_thread = None
 
     @Slot(int, result=str)
     def previewSubtitleAt(self, position_ms):
