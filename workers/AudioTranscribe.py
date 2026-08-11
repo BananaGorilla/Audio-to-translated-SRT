@@ -115,12 +115,21 @@ class AudioTranscribeWorker(QObject):
     def run_local(self):
         logger.info("AudioTranscribeWorker started running in local mode.")
 
-        if not config.LOCAL_WHISPER_CLI_PATH or not config.LOCAL_WHISPER_MODEL_PATH:
+        cli_path = os.getenv(config.LOCAL_WHISPER_CLI_PATH, "").strip()
+        model_path = os.getenv(config.LOCAL_WHISPER_MODEL_PATH, "").strip()
+        if not cli_path or not model_path:
             raise ValueError("Configure the local Whisper executable and model paths first.")
 
+        if not Path(cli_path).is_file():
+            raise ValueError("The local Whisper CLI path does not point to a file.")
+        if not os.access(cli_path, os.X_OK):
+            raise ValueError("The local Whisper CLI path is not executable.")
+        if not Path(model_path).is_file():
+            raise ValueError("The local Whisper model path does not point to a file.")
+
         cmd = [
-            config.LOCAL_WHISPER_CLI_PATH,
-            "-m", config.LOCAL_WHISPER_MODEL_PATH,
+            cli_path,
+            "-m", model_path,
             "-f", self.audio_file_path,
             "-otxt",
             "-ml", "56"

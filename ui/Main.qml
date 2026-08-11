@@ -583,7 +583,7 @@ ApplicationWindow {
 
                             Panel {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 190
+                                Layout.preferredHeight: transcriptionModel.currentValue === "local/whisper" ? 314 : 190
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -619,6 +619,7 @@ ApplicationWindow {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true
+                                            visible: transcriptionModel.currentValue !== "local/whisper"
                                             Text { text: "API key"; color: "#475569"; font.pixelSize: 12 }
                                             TextField {
                                                 id: transcriptionKey
@@ -629,12 +630,42 @@ ApplicationWindow {
                                             }
                                         }
                                     }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        visible: transcriptionModel.currentValue === "local/whisper"
+                                        spacing: 7
+
+                                        Text {
+                                            text: "Local Whisper setup"
+                                            color: "#475569"
+                                            font.pixelSize: 12
+                                            font.weight: Font.DemiBold
+                                        }
+                                        Text {
+                                            text: "Enter the whisper.cpp executable and GGUF model file paths."
+                                            color: "#64748b"
+                                            font.pixelSize: 11
+                                        }
+                                        TextField {
+                                            id: localWhisperCliPath
+                                            Layout.fillWidth: true
+                                            text: appController.localWhisperCliPath
+                                            placeholderText: "Whisper CLI path, e.g. /path/to/whisper-cli"
+                                        }
+                                        TextField {
+                                            id: localWhisperModelPath
+                                            Layout.fillWidth: true
+                                            text: appController.localWhisperModelPath
+                                            placeholderText: "Whisper model path, e.g. /path/to/ggml-model.bin"
+                                        }
+                                    }
                                 }
                             }
 
                             Panel {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 190
+                                Layout.preferredHeight: translationModel.currentValue === "local/translator" ? 274 : 190
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -670,6 +701,7 @@ ApplicationWindow {
                                         }
                                         ColumnLayout {
                                             Layout.fillWidth: true
+                                            visible: translationModel.currentValue !== "local/translator"
                                             Text { text: "API key"; color: "#475569"; font.pixelSize: 12 }
                                             TextField {
                                                 id: translationKey
@@ -678,6 +710,30 @@ ApplicationWindow {
                                                 echoMode: TextInput.Password
                                                 placeholderText: "Not required for a local translator"
                                             }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        visible: translationModel.currentValue === "local/translator"
+                                        spacing: 7
+
+                                        Text {
+                                            text: "Local translator setup"
+                                            color: "#475569"
+                                            font.pixelSize: 12
+                                            font.weight: Font.DemiBold
+                                        }
+                                        Text {
+                                            text: "Enter the GGUF model file used by the local translator."
+                                            color: "#64748b"
+                                            font.pixelSize: 11
+                                        }
+                                        TextField {
+                                            id: localTranslatorModelPath
+                                            Layout.fillWidth: true
+                                            text: appController.localTranslatorModelPath
+                                            placeholderText: "GGUF model path, e.g. /path/to/model.gguf"
                                         }
                                     }
                                 }
@@ -697,7 +753,10 @@ ApplicationWindow {
                                         transcriptionModel.currentValue,
                                         transcriptionKey.text,
                                         translationModel.currentValue,
-                                        translationKey.text
+                                        translationKey.text,
+                                        localWhisperCliPath.text,
+                                        localWhisperModelPath.text,
+                                        localTranslatorModelPath.text
                                     )
                                 }
                             }

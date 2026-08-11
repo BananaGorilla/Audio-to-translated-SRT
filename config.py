@@ -5,13 +5,16 @@ AUDIO_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg")
 GEMINI_MODEL = "gemini-2.5-flash"
 OPENAI_WHISPER_MODEL = "whisper-1"
 
-LOCAL_WHISPER_CLI_PATH = ""     # Include your local whisper CLI path
-LOCAL_WHISPER_MODEL_PATH = ""   # Include your local whisper model path
+# Environment variable names for the local whisper.cpp setup.  The paths are
+# configured from the Settings screen instead of being hard-coded in source.
+LOCAL_WHISPER_CLI_PATH = "LOCAL_WHISPER_CLI_PATH"
+LOCAL_WHISPER_MODEL_PATH = "LOCAL_WHISPER_MODEL_PATH"
 
 SELECTED_TRANSCRIPTION_MODEL = "SELECTED_TRANSCRIPTION_MODEL"
 SELECTED_TRANSLATION_MODEL = "SELECTED_TRANSLATION_MODEL"
 
-LOCAL_LLM_GGUF_FILE_PATH = ""   # Include your local model path
+# Environment variable name for the GGUF model used by the local translator.
+LOCAL_LLM_GGUF_FILE_PATH = "LOCAL_LLM_GGUF_FILE_PATH"
 
 # Lookup tables
 TranscriptionModelLookup = {

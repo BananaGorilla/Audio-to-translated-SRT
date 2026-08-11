@@ -149,8 +149,29 @@ class AppController(QObject):
         return str(self._settings.value("transcription_api_key", ""))
 
     @Property(str, constant=True)
+    def localWhisperCliPath(self):
+        return str(self._settings.value(
+            "local_whisper_cli_path",
+            os.getenv(config.LOCAL_WHISPER_CLI_PATH, ""),
+        ))
+
+    @Property(str, constant=True)
+    def localWhisperModelPath(self):
+        return str(self._settings.value(
+            "local_whisper_model_path",
+            os.getenv(config.LOCAL_WHISPER_MODEL_PATH, ""),
+        ))
+
+    @Property(str, constant=True)
     def translationApiKey(self):
         return str(self._settings.value("translation_api_key", ""))
+
+    @Property(str, constant=True)
+    def localTranslatorModelPath(self):
+        return str(self._settings.value(
+            "local_translator_model_path",
+            os.getenv(config.LOCAL_LLM_GGUF_FILE_PATH, ""),
+        ))
 
     @Property(str, notify=audioFilePathChanged)
     def audioFilePath(self):
@@ -592,18 +613,24 @@ class AppController(QObject):
     def saveTranslation(self, content):
         self._save_text("Save translation", "translation.srt", content)
 
-    @Slot(str, str, str, str)
+    @Slot(str, str, str, str, str, str, str)
     def saveSettings(
         self,
         transcription_model,
         transcription_api_key,
         translation_model,
         translation_api_key,
+        local_whisper_cli_path,
+        local_whisper_model_path,
+        local_translator_model_path,
     ):
         try:
             self._env_path.touch(exist_ok=True)
             self._settings.setValue("transcription_api_key", transcription_api_key)
             self._settings.setValue("translation_api_key", translation_api_key)
+            self._settings.setValue("local_whisper_cli_path", local_whisper_cli_path)
+            self._settings.setValue("local_whisper_model_path", local_whisper_model_path)
+            self._settings.setValue("local_translator_model_path", local_translator_model_path)
 
             self._save_provider_setting(
                 config.SELECTED_TRANSCRIPTION_MODEL,
@@ -615,6 +642,11 @@ class AppController(QObject):
                 translation_model,
                 translation_api_key,
             )
+            self._save_local_whisper_paths(
+                local_whisper_cli_path,
+                local_whisper_model_path,
+            )
+            self._save_local_translator_model_path(local_translator_model_path)
             self._set_value(
                 "_selected_transcription_model",
                 transcription_model,
@@ -641,6 +673,20 @@ class AppController(QObject):
         set_key(str(self._env_path), provider_key, api_key)
         os.environ[selected_key] = model
         os.environ[provider_key] = api_key
+
+    def _save_local_whisper_paths(self, cli_path, model_path):
+        """Persist local whisper.cpp paths for the current and future sessions."""
+        cli_path = cli_path.strip()
+        model_path = model_path.strip()
+        set_key(str(self._env_path), config.LOCAL_WHISPER_CLI_PATH, cli_path)
+        set_key(str(self._env_path), config.LOCAL_WHISPER_MODEL_PATH, model_path)
+        os.environ[config.LOCAL_WHISPER_CLI_PATH] = cli_path
+        os.environ[config.LOCAL_WHISPER_MODEL_PATH] = model_path
+
+    def _save_local_translator_model_path(self, model_path):
+        model_path = model_path.strip()
+        set_key(str(self._env_path), config.LOCAL_LLM_GGUF_FILE_PATH, model_path)
+        os.environ[config.LOCAL_LLM_GGUF_FILE_PATH] = model_path
 
     @staticmethod
     def _model_label(model_lookup, selected_model):
