@@ -4,6 +4,7 @@ import config
 import logging
 from litellm import completion
 import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +71,16 @@ class AudioTranslatorWorker(QObject):
 
     @Slot()
     def run_local(self) -> str:
-        if not config.LOCAL_LLM_GGUF_FILE_PATH:
+        model_path = os.getenv(config.LOCAL_LLM_GGUF_FILE_PATH, "").strip()
+        if not model_path:
             raise ValueError("Configure a local GGUF model path first.")
+        if not Path(model_path).is_file():
+            raise ValueError("The local translator model path does not point to a file.")
 
         from llama_cpp import Llama
 
         llm = Llama(
-            model_path=config.LOCAL_LLM_GGUF_FILE_PATH,
+            model_path=model_path,
             n_gpu_layers=-1,
             n_ctx=4096
         )
