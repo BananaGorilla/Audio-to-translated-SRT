@@ -144,9 +144,20 @@ class AppController(QObject):
     def previewStatus(self):
         return self._preview_status
 
-    @Property(str, constant=True)
-    def transcriptionApiKey(self):
-        return str(self._settings.value("transcription_api_key", ""))
+    @Slot(str, result=str)
+    def apiKeyForModel(self, model):
+        """Return the saved API key for the provider behind *model*.
+
+        API keys are provider credentials, rather than credentials for a
+        transcription or translation section.  Looking them up from the model
+        prevents a key entered for one provider from appearing after the user
+        switches to another provider.
+        """
+        provider = model.split("/", 1)[0] if model else ""
+        provider_key = config.ModelProviderApiLookup.get(provider)
+        if not provider_key or provider == "local":
+            return ""
+        return os.environ.get(provider_key, "")
 
     @Property(str, constant=True)
     def localWhisperCliPath(self):
@@ -161,10 +172,6 @@ class AppController(QObject):
             "local_whisper_model_path",
             os.getenv(config.LOCAL_WHISPER_MODEL_PATH, ""),
         ))
-
-    @Property(str, constant=True)
-    def translationApiKey(self):
-        return str(self._settings.value("translation_api_key", ""))
 
     @Property(str, constant=True)
     def localTranslatorModelPath(self):

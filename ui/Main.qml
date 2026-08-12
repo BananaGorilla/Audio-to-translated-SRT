@@ -614,7 +614,9 @@ ApplicationWindow {
                                                             break
                                                         }
                                                     }
+                                                    transcriptionKey.text = appController.apiKeyForModel(currentValue)
                                                 }
+                                                onCurrentValueChanged: transcriptionKey.text = appController.apiKeyForModel(currentValue)
                                             }
                                         }
                                         ColumnLayout {
@@ -624,7 +626,7 @@ ApplicationWindow {
                                             TextField {
                                                 id: transcriptionKey
                                                 Layout.fillWidth: true
-                                                text: appController.transcriptionApiKey
+                                                text: appController.apiKeyForModel(transcriptionModel.currentValue)
                                                 echoMode: TextInput.Password
                                                 placeholderText: "Not required for local Whisper"
                                             }
@@ -696,7 +698,9 @@ ApplicationWindow {
                                                             break
                                                         }
                                                     }
+                                                    translationKey.text = appController.apiKeyForModel(currentValue)
                                                 }
+                                                onCurrentValueChanged: translationKey.text = appController.apiKeyForModel(currentValue)
                                             }
                                         }
                                         ColumnLayout {
@@ -706,7 +710,7 @@ ApplicationWindow {
                                             TextField {
                                                 id: translationKey
                                                 Layout.fillWidth: true
-                                                text: appController.translationApiKey
+                                                text: appController.apiKeyForModel(translationModel.currentValue)
                                                 echoMode: TextInput.Password
                                                 placeholderText: "Not required for a local translator"
                                             }
