@@ -108,6 +108,13 @@ class MediaDownloadWorker(QObject):
             "keepvideo": self.keep_video,
             "ffmpeg_location": ffmpeg_location,
             "merge_output_format": "mp4",
+            # YouTube's media URLs are short-lived.  Retrying a transient
+            # connection failure here is safe and avoids failing an otherwise
+            # valid download after the stream has started.
+            "retries": 3,
+            "fragment_retries": 3,
+            "file_access_retries": 3,
+            "socket_timeout": 30,
             "progress_hooks": [self._progress_hook],
             "postprocessors": [
                 {
@@ -120,6 +127,30 @@ class MediaDownloadWorker(QObject):
             "noprogress": True,
             "no_warnings": True,
         }
+
+        # Some video CDNs reject Python's default TLS fingerprint with a 403.
+        # yt-dlp uses curl_cffi for browser impersonation when it is installed.
+        # Keep this optional so existing installations still work until their
+        # dependencies have been refreshed.
+        try:
+            import curl_cffi  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            options["impersonate"] = "chrome"
+
+        # An opt-in Netscape cookie file lets users download videos that
+        # require their signed-in YouTube session without the app reading a
+        # browser profile or credentials itself.
+        cookie_file = os.getenv("YTDLP_COOKIEFILE", "").strip()
+        if cookie_file:
+            cookie_path = Path(cookie_file).expanduser()
+            if not cookie_path.is_file():
+                raise RuntimeError(
+                    "YTDLP_COOKIEFILE points to a file that does not exist: "
+                    f"{cookie_path}"
+                )
+            options["cookiefile"] = str(cookie_path)
 
         self.progress_updated.emit(0, "Reading video information…")
         with yt_dlp.YoutubeDL(options) as downloader:
@@ -182,4 +213,11 @@ class MediaDownloadWorker(QObject):
             )
         if "ffmpeg" in lowered and "not found" in lowered:
             return message
+        if "http error 403" in lowered:
+            return (
+                "YouTube refused the media request (HTTP 403). Update the app's "
+                "yt-dlp dependencies and try again without a VPN or proxy. If the "
+                "video needs an account, set YTDLP_COOKIEFILE to an exported "
+                "Netscape-format cookie file from the same browser and network."
+            )
         return message
