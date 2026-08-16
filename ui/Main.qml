@@ -337,21 +337,32 @@ ApplicationWindow {
                                     }
                                 }
 
-                                TextArea {
-                                    id: transcriptionEditor
+                                ScrollView {
+                                    id: transcriptionEditorScroll
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
-                                    text: appController.transcribedText
-                                    placeholderText: "Your transcript will appear here. You can edit it before saving."
-                                    wrapMode: TextEdit.Wrap
-                                    selectByMouse: true
-                                    font.family: "Menlo"
-                                    font.pixelSize: 13
-                                    color: "#1e293b"
-                                    background: Rectangle {
-                                        radius: 10
-                                        color: "#f8fafc"
-                                        border.color: transcriptionEditor.activeFocus ? "#60a5fa" : "#e2e8f0"
+                                    clip: true
+                                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+                                    TextArea {
+                                        id: transcriptionEditor
+                                        width: transcriptionEditorScroll.availableWidth
+                                        height: Math.max(
+                                            transcriptionEditorScroll.availableHeight,
+                                            contentHeight + topPadding + bottomPadding
+                                        )
+                                        text: appController.transcribedText
+                                        placeholderText: "Your transcript will appear here. You can edit it before saving."
+                                        wrapMode: TextEdit.Wrap
+                                        selectByMouse: true
+                                        font.family: "Menlo"
+                                        font.pixelSize: 13
+                                        color: "#1e293b"
+                                        background: Rectangle {
+                                            radius: 10
+                                            color: "#f8fafc"
+                                            border.color: transcriptionEditor.activeFocus ? "#60a5fa" : "#e2e8f0"
+                                        }
                                     }
                                 }
 
@@ -478,21 +489,32 @@ ApplicationWindow {
                                         font.pixelSize: 14
                                         font.weight: Font.DemiBold
                                     }
-                                    TextArea {
-                                        id: originalEditor
+                                    ScrollView {
+                                        id: originalEditorScroll
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        text: appController.originalText
-                                        placeholderText: "Open an SRT file or paste subtitle text here."
-                                        wrapMode: TextEdit.Wrap
-                                        selectByMouse: true
-                                        font.family: "Menlo"
-                                        font.pixelSize: 12
-                                        color: "#1e293b"
-                                        background: Rectangle {
-                                            radius: 10
-                                            color: "#f8fafc"
-                                            border.color: originalEditor.activeFocus ? "#60a5fa" : "#e2e8f0"
+                                        clip: true
+                                        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+                                        TextArea {
+                                            id: originalEditor
+                                            width: originalEditorScroll.availableWidth
+                                            height: Math.max(
+                                                originalEditorScroll.availableHeight,
+                                                contentHeight + topPadding + bottomPadding
+                                            )
+                                            text: appController.originalText
+                                            placeholderText: "Open an SRT file or paste subtitle text here."
+                                            wrapMode: TextEdit.Wrap
+                                            selectByMouse: true
+                                            font.family: "Menlo"
+                                            font.pixelSize: 12
+                                            color: "#1e293b"
+                                            background: Rectangle {
+                                                radius: 10
+                                                color: "#f8fafc"
+                                                border.color: originalEditor.activeFocus ? "#60a5fa" : "#e2e8f0"
+                                            }
                                         }
                                     }
                                 }
@@ -511,21 +533,32 @@ ApplicationWindow {
                                         font.pixelSize: 14
                                         font.weight: Font.DemiBold
                                     }
-                                    TextArea {
-                                        id: translationEditor
+                                    ScrollView {
+                                        id: translationEditorScroll
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        text: appController.translatedText
-                                        placeholderText: "The translated subtitles will appear here."
-                                        wrapMode: TextEdit.Wrap
-                                        selectByMouse: true
-                                        font.family: "Menlo"
-                                        font.pixelSize: 12
-                                        color: "#1e293b"
-                                        background: Rectangle {
-                                            radius: 10
-                                            color: "#f8fafc"
-                                            border.color: translationEditor.activeFocus ? "#2dd4bf" : "#e2e8f0"
+                                        clip: true
+                                        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+                                        TextArea {
+                                            id: translationEditor
+                                            width: translationEditorScroll.availableWidth
+                                            height: Math.max(
+                                                translationEditorScroll.availableHeight,
+                                                contentHeight + topPadding + bottomPadding
+                                            )
+                                            text: appController.translatedText
+                                            placeholderText: "The translated subtitles will appear here."
+                                            wrapMode: TextEdit.Wrap
+                                            selectByMouse: true
+                                            font.family: "Menlo"
+                                            font.pixelSize: 12
+                                            color: "#1e293b"
+                                            background: Rectangle {
+                                                radius: 10
+                                                color: "#f8fafc"
+                                                border.color: translationEditor.activeFocus ? "#2dd4bf" : "#e2e8f0"
+                                            }
                                         }
                                     }
                                     RowLayout {

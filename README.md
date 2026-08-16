@@ -33,6 +33,18 @@ MP4 so it is compatible with the built-in subtitle Preview player.
 This feature uses `yt-dlp` to download media and FFmpeg to merge separate video
 and audio streams and convert the audio to MP3, WAV, or M4A. FFmpeg is required.
 
+YouTube changes its delivery system frequently, so reinstall the requirements
+before reporting a download problem, especially after a 403 error:
+
+> python3 -m pip install -U -r requirements.txt
+
+The included `curl-cffi` support makes yt-dlp impersonate a browser for sites
+that reject non-browser network fingerprints. For a private, age-restricted, or
+otherwise signed-in-only YouTube video, export a Netscape-format cookie file
+from the browser you use on the same network and set `YTDLP_COOKIEFILE` to that
+file's path before starting the app. The app never reads browser profiles or
+stored browser credentials automatically.
+
 - macOS (Homebrew): `brew install ffmpeg`
 - Windows (winget): `winget install Gyan.FFmpeg`
 - Ubuntu/Debian: `sudo apt install ffmpeg`
