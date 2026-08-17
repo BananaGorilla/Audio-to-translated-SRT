@@ -8,6 +8,9 @@ import os
 
 logger = logging.getLogger(__name__)
 
+OPENAI_WHISPER_AUDIO_SIZE = 25.00
+LOWER_BITRATE_AUDIO_FILE_PATH = "./low_bitrate_audio.mp3"
+
 class AudioTranscribeWorker(QObject):
     # Signals that UI listens to
     transcribe_complete = Signal(str)
@@ -98,7 +101,32 @@ class AudioTranscribeWorker(QObject):
         logger.info("AudioTranscribeWorker started running. Using OpenAI Whisper for transcription.")
 
         self.progress_updated.emit("Uploading audio file to OpenAI Whisper...")
-        with open(self.audio_file_path, "rb") as audio_file:
+
+        upload_file = self.audio_file_path
+
+        # Check if the file size is more than 25MB
+        # Call ffmpeg to lower the bitrate to 32k
+        audio_file_size = Path(self.audio_file_path).stat().st_size
+        audio_file_size = audio_file_size / (1024 * 1024)
+
+        if(audio_file_size > OPENAI_WHISPER_AUDIO_SIZE):
+            logger.info("The audio file size is more than 25MB. It exceeds OpenAI Whisper file size limit.")
+
+            subprocess.run([
+                "ffmpeg",
+                "-i", self.audio_file_path,
+                "-codec:a",
+                "libmp3lame",
+                "-b:a",
+                "32k",
+                LOWER_BITRATE_AUDIO_FILE_PATH
+            ])
+
+            upload_file = LOWER_BITRATE_AUDIO_FILE_PATH
+
+            logger.info("Using ffmpeg to lower to 32k bitrate audio")
+
+        with open(upload_file, "rb") as audio_file:
             response = self.client.audio.transcriptions.create(
                 model=config.OPENAI_WHISPER_MODEL,
                 file=audio_file,
@@ -107,6 +135,10 @@ class AudioTranscribeWorker(QObject):
             )
 
         logger.info("Transcription completed successfully.")
+
+        # Remove the lower bitrate file if any
+        file_to_be_deleted = Path(LOWER_BITRATE_AUDIO_FILE_PATH)
+        file_to_be_deleted.unlink(missing_ok=True)
 
         transcribed_text = response if isinstance(response, str) else getattr(response, "text", str(response))
         self.transcribe_complete.emit(transcribed_text)

@@ -17,6 +17,13 @@ datas += yt_dlp_datas
 binaries += yt_dlp_binaries
 hiddenimports += yt_dlp_hiddenimports
 
+# Browser impersonation is optional at runtime, but include its native
+# curl_cffi components when it is available in the build environment.
+curl_cffi_datas, curl_cffi_binaries, curl_cffi_hiddenimports = collect_all('curl_cffi')
+datas += curl_cffi_datas
+binaries += curl_cffi_binaries
+hiddenimports += curl_cffi_hiddenimports
+
 hiddenimports += [
     'tiktoken_ext.openai_public',
     'PySide6.QtMultimedia',

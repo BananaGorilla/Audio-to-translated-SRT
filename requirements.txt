@@ -1,4 +1,7 @@
+# yt-dlp currently supports curl_cffi 0.10 through 0.15.  0.16 makes the
+# optional browser-impersonation handler unavailable.
 yt-dlp[default,curl-cffi]
+curl-cffi>=0.10,<0.16
 google-genai
 pydub
 python-dotenv

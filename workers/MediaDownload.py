@@ -129,15 +129,25 @@ class MediaDownloadWorker(QObject):
         }
 
         # Some video CDNs reject Python's default TLS fingerprint with a 403.
-        # yt-dlp uses curl_cffi for browser impersonation when it is installed.
-        # Keep this optional so existing installations still work until their
-        # dependencies have been refreshed.
+        # Browser impersonation is optional: yt-dlp only exposes it when its
+        # installed curl_cffi version is compatible.  Do not force "chrome"
+        # merely because curl_cffi imports successfully; newer incompatible
+        # releases otherwise make every download fail before it starts.
         try:
-            import curl_cffi  # noqa: F401
-        except ImportError:
-            pass
-        else:
-            options["impersonate"] = "chrome"
+            from yt_dlp.networking.impersonate import ImpersonateTarget
+
+            chrome_target = ImpersonateTarget("chrome")
+            with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as probe:
+                chrome_available = probe._impersonate_target_available(
+                    chrome_target
+                )
+        except Exception as error:
+            logger.debug("Could not check yt-dlp impersonation support: %s", error)
+            chrome_available = False
+        if chrome_available:
+            # This yt-dlp release validates the option before normalizing
+            # strings, so it must receive an ImpersonateTarget instance.
+            options["impersonate"] = chrome_target
 
         # An opt-in Netscape cookie file lets users download videos that
         # require their signed-in YouTube session without the app reading a
