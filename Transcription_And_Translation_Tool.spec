@@ -4,6 +4,7 @@ import sys
 
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_all
+from PyInstaller.building.osx import BUNDLE
 
 # Automatically grab dynamically imported provider and native-model packages.
 datas, binaries, hiddenimports = collect_all('litellm')
@@ -16,6 +17,13 @@ yt_dlp_datas, yt_dlp_binaries, yt_dlp_hiddenimports = collect_all('yt_dlp')
 datas += yt_dlp_datas
 binaries += yt_dlp_binaries
 hiddenimports += yt_dlp_hiddenimports
+
+# Browser impersonation is optional at runtime, but include its native
+# curl_cffi components when it is available in the build environment.
+curl_cffi_datas, curl_cffi_binaries, curl_cffi_hiddenimports = collect_all('curl_cffi')
+datas += curl_cffi_datas
+binaries += curl_cffi_binaries
+hiddenimports += curl_cffi_hiddenimports
 
 hiddenimports += [
     'tiktoken_ext.openai_public',
@@ -57,9 +65,12 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,
+    # A Qt desktop application must be windowed on macOS.  A console build
+    # produces LSBackgroundOnly=true in the .app bundle, so Finder launches it
+    # without showing its UI.
+    console=False,
     disable_windowed_traceback=False,
-    argv_emulation=False,
+    argv_emulation=True,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
@@ -73,3 +84,10 @@ coll = COLLECT(
     upx_exclude=[],
     name='Transcription_And_Translation_Tool',
 )
+
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="Audio Subtitle Studio.app",
+        bundle_identifier="com.yourname.audiosubtitlestudio",
+    )
