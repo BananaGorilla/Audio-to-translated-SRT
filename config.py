@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+import sys
 from enum import Enum
 
 AUDIO_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg")
@@ -36,6 +39,23 @@ ModelProviderApiLookup = {
     "gemini": "GEMINI_API_KEY",
     "local": "LOCAL_MODEL_API_KEY"
 }
+
+
+def user_config_directory():
+    """Return a per-user writable directory for persistent application data."""
+    if sys.platform == "darwin":
+        root = Path.home() / "Library" / "Application Support"
+    elif sys.platform == "win32":
+        root = Path(os.getenv("APPDATA", Path.home() / "AppData" / "Roaming"))
+    else:
+        root = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+    return root / "AudioSubtitleTool"
+
+
+def user_env_path():
+    """Return the writable dotenv path used for saved models and credentials."""
+    return user_config_directory() / ".env"
+
 
 class AIClientUsage(Enum):
     TRANSCRIPTION = 0

@@ -84,7 +84,7 @@ class AppController(QObject):
         self._media_download_thread = None
         self._media_download_worker = None
 
-        self._env_path = Path(__file__).resolve().parent / ".env"
+        self._env_path = config.user_env_path()
 
     @Property("QVariantList", constant=True)
     def transcriptionModels(self):
@@ -632,7 +632,9 @@ class AppController(QObject):
         local_translator_model_path,
     ):
         try:
+            self._env_path.parent.mkdir(parents=True, exist_ok=True)
             self._env_path.touch(exist_ok=True)
+            self._env_path.chmod(0o600)
             self._settings.setValue("transcription_api_key", transcription_api_key)
             self._settings.setValue("translation_api_key", translation_api_key)
             self._settings.setValue("local_whisper_cli_path", local_whisper_cli_path)

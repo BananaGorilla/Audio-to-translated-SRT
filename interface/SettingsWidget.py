@@ -11,7 +11,7 @@ class SettingsTab(QWidget):
     def __init__(self):
         super().__init__()
         self.settings = QSettings("MyApp", "AIToolbox")  # persists to OS settings store
-        self.env_path = Path(__file__).resolve().parents[1] / ".env"
+        self.env_path = config.user_env_path()
 
         self.save_transcription_model = config.TranscriptionModelLookup["Gemini Flash"]
         if(os.getenv(config.SELECTED_TRANSCRIPTION_MODEL) != None):
@@ -126,7 +126,9 @@ class SettingsTab(QWidget):
         translation_provider_env_key = config.ModelProviderApiLookup.get(translation_provider_name)
 
         if transcription_provider_env_key:
+            self.env_path.parent.mkdir(parents=True, exist_ok=True)
             self.env_path.touch(exist_ok=True)
+            self.env_path.chmod(0o600)
             set_key(str(self.env_path), config.SELECTED_TRANSCRIPTION_MODEL, transcription_selected_model)  # Save the selected transcription model name
             set_key(str(self.env_path), transcription_provider_env_key, transcription_api_key)              # Save the transcription model API key
             os.environ[config.SELECTED_TRANSCRIPTION_MODEL] = transcription_selected_model
@@ -134,7 +136,9 @@ class SettingsTab(QWidget):
             print(f"{transcription_selected_model} selected for transcription. Saved {transcription_provider_env_key} to .env file and environment variables")
         
         if translation_provider_env_key:
+            self.env_path.parent.mkdir(parents=True, exist_ok=True)
             self.env_path.touch(exist_ok=True)
+            self.env_path.chmod(0o600)
             set_key(str(self.env_path), config.SELECTED_TRANSLATION_MODEL, translation_selected_model)      # Save the selected translation model name
             set_key(str(self.env_path), translation_provider_env_key, translation_api_key)                  # Save the translation model API key
             os.environ[config.SELECTED_TRANSLATION_MODEL] = translation_selected_model
