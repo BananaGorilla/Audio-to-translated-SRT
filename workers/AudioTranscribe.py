@@ -3,6 +3,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 import logging
 from workers.common_tools import create_ai_client
 from workers.MediaDownload import find_ffmpeg_executable
+from prompt.loader import load_transcription_prompt
 import config
 import subprocess
 import os
@@ -38,28 +39,15 @@ class AudioTranscribeWorker(QObject):
             self.progress_updated.emit("No audio file path provided")
             raise ValueError("Audio file path is required for transcription.")
 
-        self.transcribe_prompt = f"""
-            Transcribe this {self.source_language} audio.
-            If it has Pali language, please transcribe the Pali part as well, but keep the Pali text in its original script without romanization.
-            """
-        
-        self.transcribe_timestamp = f"""
-            
-            Return ONLY valid SRT format with timestamps.
-            Keep each subtitle block to 10 words max.
-            Example format:
-            1
-            00:00:00,000 --> 00:00:05,200
-            Transcribe sentence here.
-            Do not repeat the same end timestamp to the next start timstamp. Add 1 millisecond to the next start timestamp if they are the same.
-            """
+        self.transcribe_prompt = load_transcription_prompt(
+            source_language=self.source_language,
+            timestamp_needed=self.timestamp_needed,
+        )
     
     @Slot()
     def run(self):
         try:
             prompt = self.transcribe_prompt
-            if self.timestamp_needed:
-                prompt += self.transcribe_timestamp
 
             selected_model = os.getenv(config.SELECTED_TRANSCRIPTION_MODEL)
             if selected_model == config.TranscriptionModelLookup["Gemini Flash"]:

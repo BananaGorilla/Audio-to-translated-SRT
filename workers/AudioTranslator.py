@@ -1,5 +1,6 @@
 from PySide6.QtCore import QObject, Signal, Slot
 from workers.common_tools import create_ai_client
+from prompt.loader import load_translation_prompt, messages_to_local_prompt
 import config
 import logging
 from litellm import completion
@@ -45,16 +46,11 @@ class AudioTranslatorWorker(QObject):
         if not srt_content.strip():
             raise ValueError("There is no subtitle text to translate.")
 
-        self.system_prompt = f"""
-            You are a professional translator specializing in translating subtitles and Buddhism context across different lineages. 
-            If it has Pali language, please translate the Pali too and bracket the original Pali text. 
-            Make it friendly readable, but do not change the timestamps. Keep the same format, and just reply the translation outcome.
-            """
-        
-        self.user_prompt = f"""
-            Translate this {source_language} SRT content into {target_language}:\n\n
-            {srt_content}
-            """
+        self.messages = load_translation_prompt(
+            source_language=source_language,
+            target_language=target_language,
+            srt_content=srt_content,
+        )
 
     @Slot()
     def run(self):
@@ -84,7 +80,10 @@ class AudioTranslatorWorker(QObject):
             n_gpu_layers=-1,
             n_ctx=4096
         )
-        translation_result = llm(self.system_prompt + self.user_prompt, max_tokens=4096)
+        translation_result = llm(
+            messages_to_local_prompt(self.messages),
+            max_tokens=4096,
+        )
         return translation_result["choices"][0]["text"]
 
     @Slot()
@@ -92,15 +91,6 @@ class AudioTranslatorWorker(QObject):
         self.progress_updated.emit("Prompting the AI model for translation...")
         response = completion(
             model=os.getenv(config.SELECTED_TRANSLATION_MODEL),
-            messages=[
-                {
-                    "role": "system",
-                    "content": self.system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": self.user_prompt
-                }
-            ]
+            messages=self.messages,
         )
         return response.choices[0].message.content
