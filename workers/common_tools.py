@@ -24,7 +24,7 @@ def create_ai_client(usage: int = config.AIClientUsage.TRANSCRIPTION.value):
         if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["Claude Sonnet"]:
             api_key = os.getenv("ANTHROPIC_API_KEY")
             client = OpenAI(api_key=api_key)
-        if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["GPT-4o"]:
+        if os.getenv(config.SELECTED_TRANSLATION_MODEL).startswith("openai/"):
             api_key = os.getenv("OPENAI_API_KEY")
             client = OpenAI(api_key=api_key)
         if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["Local Translator"]:
