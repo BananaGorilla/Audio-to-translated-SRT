@@ -2,6 +2,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot
 import logging
 from workers.common_tools import create_ai_client
+from workers.MediaDownload import find_ffmpeg_executable
 import config
 import subprocess
 import os
@@ -112,15 +113,22 @@ class AudioTranscribeWorker(QObject):
         if(audio_file_size > OPENAI_WHISPER_AUDIO_SIZE):
             logger.info("The audio file size is more than 25MB. It exceeds OpenAI Whisper file size limit.")
 
+            ffmpeg_executable = find_ffmpeg_executable()
+            if not ffmpeg_executable:
+                raise RuntimeError(
+                    "FFmpeg was not found. Install FFmpeg or set FFMPEG_BINARY "
+                    "to its executable path."
+                )
+
             subprocess.run([
-                "ffmpeg",
+                ffmpeg_executable,
                 "-i", self.audio_file_path,
                 "-codec:a",
                 "libmp3lame",
                 "-b:a",
                 "32k",
                 LOWER_BITRATE_AUDIO_FILE_PATH
-            ])
+            ], check=True)
 
             upload_file = LOWER_BITRATE_AUDIO_FILE_PATH
 

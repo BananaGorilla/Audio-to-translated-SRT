@@ -22,8 +22,8 @@ _PREVIEW_COMPATIBLE_VIDEO_FORMAT = (
 )
 
 
-def find_ffmpeg_location():
-    """Return an FFmpeg executable directory that yt-dlp can use."""
+def find_ffmpeg_executable():
+    """Return the absolute path of an executable FFmpeg binary."""
     configured_path = os.getenv("FFMPEG_BINARY", "").strip()
     candidates = []
     if configured_path:
@@ -46,8 +46,14 @@ def find_ffmpeg_location():
 
     for candidate in candidates:
         if candidate.is_file() and os.access(candidate, os.X_OK):
-            return str(candidate.parent)
+            return str(candidate)
     return None
+
+
+def find_ffmpeg_location():
+    """Return an FFmpeg executable directory that yt-dlp can use."""
+    executable = find_ffmpeg_executable()
+    return str(Path(executable).parent) if executable else None
 
 
 class MediaDownloadWorker(QObject):
@@ -225,9 +231,11 @@ class MediaDownloadWorker(QObject):
             return message
         if "http error 403" in lowered:
             return (
-                "YouTube refused the media request (HTTP 403). Update the app's "
-                "yt-dlp dependencies and try again without a VPN or proxy. If the "
-                "video needs an account, set YTDLP_COOKIEFILE to an exported "
-                "Netscape-format cookie file from the same browser and network."
+                "YouTube refused the media request (HTTP 403). Rebuild or update "
+                "the app so it installs the latest yt-dlp nightly dependencies, "
+                "then try again without a VPN or proxy. If the video needs an "
+                "account, set YTDLP_COOKIEFILE to an exported Netscape-format "
+                "cookie file from the same browser and network. Some YouTube "
+                "streams also require a short-lived Proof-of-Origin token."
             )
         return message

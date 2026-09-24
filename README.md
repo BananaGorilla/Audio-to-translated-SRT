@@ -34,7 +34,9 @@ This feature uses `yt-dlp` to download media and FFmpeg to merge separate video
 and audio streams and convert the audio to MP3, WAV, or M4A. FFmpeg is required.
 
 YouTube changes its delivery system frequently, so reinstall the requirements
-before reporting a download problem, especially after a 403 error:
+before reporting a download problem, especially after a 403 error. The
+requirements file tracks yt-dlp's upstream updates because YouTube extractor
+fixes often arrive there before a stable release:
 
 > python3 -m pip install -U -r requirements.txt
 

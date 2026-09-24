@@ -8,6 +8,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtWidgets import QApplication
 
 from app_controller import AppController
+import config
 
 
 def configure_logging():
@@ -37,7 +38,10 @@ def main():
     sys.excepthook = log_uncaught_exception
 
     logging.info("Starting the Audio Transcription Editor application. Log: %s", log_file)
+    # Keep the project-local file as a development fallback. User changes are
+    # stored outside the app bundle, where packaged macOS apps can write.
     load_dotenv(Path(__file__).resolve().parent / ".env")
+    load_dotenv(config.user_env_path(), override=True)
 
     app = QApplication(sys.argv)
     app.setApplicationName("Audio Subtitle Studio")
