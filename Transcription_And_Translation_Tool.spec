@@ -31,6 +31,8 @@ hiddenimports += [
     'workers.MediaDownload',
 ]
 datas += [('ui', 'ui')]
+datas += [('prompt/templates/translation.md', 'prompt/templates')]
+datas += [('prompt/templates/transcription.md', 'prompt/templates')]
 
 # To ship FFmpeg inside the app, place ffmpeg and ffprobe in ./bin before building.
 executable_suffix = '.exe' if sys.platform == 'win32' else ''
