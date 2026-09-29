@@ -48,6 +48,7 @@ class AudioTranscribeWorker(QObject):
     def run(self):
         try:
             prompt = self.transcribe_prompt
+            print(prompt)
 
             selected_model = os.getenv(config.SELECTED_TRANSCRIPTION_MODEL)
             if selected_model == config.TranscriptionModelLookup["Gemini Flash"]:

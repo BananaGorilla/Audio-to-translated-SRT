@@ -14,10 +14,6 @@ romanization.
 
 <!-- prompt: timestamps -->
 
-Return ONLY valid SRT format with timestamps.
-
-Keep each subtitle block to 10 words maximum.
-
 Example format:
 
 ```srt
@@ -28,4 +24,8 @@ Transcribe sentence here.
 
 Do not repeat the same end timestamp as the next start timestamp. If they are
 the same, add 1 millisecond to the next start timestamp.
+
+Return ONLY valid SRT format with timestamps.
+
+Keep each subtitle block to a reasonable and readable length. Do not cut off the line, and start a new line in next timestamp instead.
 

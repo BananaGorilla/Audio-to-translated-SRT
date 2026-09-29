@@ -6,12 +6,14 @@ import logging
 from litellm import completion
 import os
 from pathlib import Path
+from workers.translation_batches import translation_batches
 
 logger = logging.getLogger(__name__)
 
 class AudioTranslatorWorker(QObject):
     # Signals that UI listens to
     translation_complete = Signal(str)
+    translation_chunk = Signal(str)
     progress_updated = Signal(str)
     failed = Signal(str)
 
@@ -46,6 +48,9 @@ class AudioTranslatorWorker(QObject):
         if not srt_content.strip():
             raise ValueError("There is no subtitle text to translate.")
 
+        self.srt_content = srt_content
+        self.source_language = source_language
+        self.target_language = target_language
         self.messages = load_translation_prompt(
             source_language=source_language,
             target_language=target_language,
@@ -57,6 +62,7 @@ class AudioTranslatorWorker(QObject):
         try:
             if os.getenv(config.SELECTED_TRANSLATION_MODEL) == config.TranslationModelLookup["Local Translator"]:
                 translation_result = self.run_local()
+                self.translation_chunk.emit(translation_result.strip())
             else:
                 translation_result = self.run_cloud()
 
@@ -88,9 +94,23 @@ class AudioTranslatorWorker(QObject):
 
     @Slot()
     def run_cloud(self) -> str:
-        self.progress_updated.emit("Prompting the AI model for translation...")
-        response = completion(
-            model=os.getenv(config.SELECTED_TRANSLATION_MODEL),
-            messages=self.messages,
-        )
-        return response.choices[0].message.content
+        batches = list(translation_batches(self.srt_content))
+        translated = []
+
+        for index, batch in enumerate(batches, start=1):
+            self.progress_updated.emit(f"Translating batch {index} of {len(batches)}...")
+            response = completion(
+                model=os.getenv(config.SELECTED_TRANSLATION_MODEL),
+                messages=load_translation_prompt(
+                    source_language=self.source_language,
+                    target_language=self.target_language,
+                    srt_content=batch,
+                ),
+            )
+            chunk = (response.choices[0].message.content or "").strip()
+            if not chunk:
+                raise ValueError(f"Translation batch {index} returned no text.")
+            translated.append(chunk)
+            self.translation_chunk.emit(chunk)
+
+        return "\n\n".join(translated)

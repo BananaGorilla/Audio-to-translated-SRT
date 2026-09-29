@@ -560,6 +560,7 @@ class AppController(QObject):
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.progress_updated.connect(self._onTranslationProgress)
+        worker.translation_chunk.connect(self._onTranslationChunk)
         worker.translation_complete.connect(self._onTranslationComplete)
         worker.failed.connect(self._onTranslationFailed)
         worker.translation_complete.connect(thread.quit)
@@ -571,6 +572,8 @@ class AppController(QObject):
 
         self._translation_worker = worker
         self._translation_thread = thread
+        self._translated_text = ""
+        self.translatedTextChanged.emit()
         self._set_value("_translation_busy", True, self.translationBusyChanged)
         self._set_value("_translation_status", "Starting translation…", self.translationStatusChanged)
         thread.start()
@@ -580,8 +583,16 @@ class AppController(QObject):
         self._set_value("_translation_status", message, self.translationStatusChanged)
 
     @Slot(str)
+    def _onTranslationChunk(self, chunk):
+        existing = self._translated_text
+        self._set_value(
+            "_translated_text",
+            f"{existing}\n\n{chunk}" if existing else chunk,
+            self.translatedTextChanged,
+        )
+
+    @Slot(str)
     def _onTranslationComplete(self, text):
-        self._set_value("_translated_text", text, self.translatedTextChanged)
         self._set_value("_translation_status", "Translation complete", self.translationStatusChanged)
         self.notificationRequested.emit("Translation complete")
 
