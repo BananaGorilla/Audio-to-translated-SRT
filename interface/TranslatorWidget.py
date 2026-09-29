@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog, QComboBox
 from PySide6.QtCore import QThread
+from PySide6.QtGui import QTextCursor
 import logging
 from workers.AudioTranslator import AudioTranslatorWorker
 from workers.SaveFileWorker import SaveFileWorker
@@ -72,9 +73,11 @@ class TranslatorWidget(QWidget):
 
         # Save result
         self.save_result_label = QLabel("")
+        self.translation_status_label = QLabel("")
 
         layout.addLayout(file_browse_layer)
         layout.addLayout(start_translation_button_layer)
+        layout.addWidget(self.translation_status_label)
         layout.addLayout(language_selection_layer)
         layout.addLayout(edit_layer)
         layout.addLayout(save_file_layer)
@@ -111,7 +114,8 @@ class TranslatorWidget(QWidget):
 
     def on_translation(self):
         logger.info("Start translation button clicked.")
-        self.translated_edit_panel.setPlainText("Translating... Please wait.")
+        self.translated_edit_panel.clear()
+        self.translation_status_label.setText("Starting translation...")
         
         # Read the selected dropdown options
         original_language = self.original_language_dropdown.currentText()
@@ -124,7 +128,8 @@ class TranslatorWidget(QWidget):
         self.translation_worker = AudioTranslatorWorker(
             input_file_name=self.filename_path.text(),
             source_language=original_language,
-            target_language=target_language
+            target_language=target_language,
+            input_content=self.original_language_edit_panel.toPlainText(),
         )
         self.translation_thread = QThread()
 
@@ -132,10 +137,15 @@ class TranslatorWidget(QWidget):
 
         self.translation_thread.started.connect(self.translation_worker.run)
         self.translation_worker.progress_updated.connect(self.on_translation_update_label)
+        self.translation_worker.translation_chunk.connect(self.on_translation_chunk)
 
         self.translation_worker.translation_complete.connect(self.on_translation_complete)
+        self.translation_worker.failed.connect(self.on_translation_failed)
+        self.translation_worker.translation_complete.connect(self.translation_thread.quit)
+        self.translation_worker.failed.connect(self.translation_thread.quit)
         self.translation_worker.translation_complete.connect(self.translation_worker.deleteLater)
-        self.translation_worker.translation_complete.connect(self.translation_thread.deleteLater)
+        self.translation_worker.failed.connect(self.translation_worker.deleteLater)
+        self.translation_thread.finished.connect(self.translation_thread.deleteLater)
 
         self.translation_thread.start()
         self.start_translation_button.setEnabled(False)
@@ -143,15 +153,23 @@ class TranslatorWidget(QWidget):
 
     def on_translation_complete(self, translation_result):
         logger.info(f"Translation completed.")
-        # Load the translated content into the translated_edit_panel
-        self.translated_edit_panel.setPlainText(translation_result)
-        
-        self.translation_thread.quit()
+        self.translation_status_label.setText("Translation complete")
+
+    def on_translation_chunk(self, chunk):
+        if self.translated_edit_panel.toPlainText():
+            cursor = self.translated_edit_panel.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            cursor.insertText("\n\n" + chunk)
+        else:
+            self.translated_edit_panel.setPlainText(chunk)
+
+    def on_translation_failed(self, message):
+        self.translation_status_label.setText(f"Translation failed: {message}")
 
     def on_translation_update_label(self, message):
         logger.info(f"Translation progress update: {message}")
         # Update the UI with the progress message (e.g., using a QLabel or status bar)
-        self.translated_edit_panel.setPlainText(message)
+        self.translation_status_label.setText(message)
 
     def save_output_file(self):
         logger.info("Saving changes to file.")

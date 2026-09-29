@@ -559,6 +559,13 @@ ApplicationWindow {
                                                 color: "#f8fafc"
                                                 border.color: translationEditor.activeFocus ? "#2dd4bf" : "#e2e8f0"
                                             }
+
+                                            Connections {
+                                                target: appController
+                                                function onTranslatedTextChanged() {
+                                                    translationEditor.text = appController.translatedText
+                                                }
+                                            }
                                         }
                                     }
                                     RowLayout {
