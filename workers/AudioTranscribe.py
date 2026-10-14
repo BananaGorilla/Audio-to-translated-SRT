@@ -14,7 +14,7 @@ from workers.TranscriptionDataclass import StartTimeTranscribeSentence
 logger = logging.getLogger(__name__)
 
 OPENAI_WHISPER_AUDIO_SIZE = 25.00
-AUDIO_PAUSE_SECONDS = 1.5
+AUDIO_PAUSE_SECONDS = 1
 
 class AudioTranscribeWorker(QObject):
     # Signals that UI listens to
