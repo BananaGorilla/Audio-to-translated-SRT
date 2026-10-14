@@ -84,9 +84,9 @@ def load_transcription_prompt(
     variables = {"source_language": source_language}
     rendered_prompt = Template(base_prompt.strip()).substitute(variables)
 
-    if timestamp_needed:
-        rendered_prompt += "\n\n" + Template(
-            timestamp_prompt.strip()
-        ).substitute(variables)
+    # if timestamp_needed:
+    #     rendered_prompt += "\n\n" + Template(
+    #         timestamp_prompt.strip()
+    #     ).substitute(variables)
 
     return rendered_prompt

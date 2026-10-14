@@ -514,8 +514,13 @@ class AppController(QObject):
     def _onTranscriptionProgress(self, message):
         self._set_value("_transcription_status", message, self.transcriptionStatusChanged)
 
-    @Slot(str)
-    def _onTranscriptionComplete(self, text):
+    @Slot(object)
+    def _onTranscriptionComplete(self, result):
+        if isinstance(result, list):
+            text = "\n".join(f"[{item.start_time:.2f}] {item.text}" for item in result)
+        else:
+            text = str(result)
+    
         self._set_value("_transcribed_text", text, self.transcribedTextChanged)
         self._set_value("_transcription_status", "Transcription complete", self.transcriptionStatusChanged)
         self.notificationRequested.emit("Transcription complete")
