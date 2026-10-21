@@ -9,6 +9,8 @@ from PySide6.QtCore import QObject, Property, QSettings, QThread, QUrl, Signal, 
 from PySide6.QtWidgets import QFileDialog
 
 import config
+from TranscriptEditorModel import TranscriptEditorModel
+from workers.TranscriptionDataclass import StartTimeTranscribeSentence
 
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,8 @@ class AppController(QObject):
         self._subtitle_file_path = ""
         self._original_text = ""
         self._transcribed_text = ""
+        self._transcript_editor = TranscriptEditorModel(self)
+        self._transcript_editor.stateChanged.connect(self._syncTranscriptText)
         self._translated_text = ""
         self._transcription_status = "Ready"
         self._translation_status = "Ready"
@@ -195,6 +199,14 @@ class AppController(QObject):
     @Property(str, notify=transcribedTextChanged)
     def transcribedText(self):
         return self._transcribed_text
+
+    @Property(QObject, constant=True)
+    def transcriptEditor(self):
+        return self._transcript_editor
+
+    def _syncTranscriptText(self):
+        self._set_value("_transcribed_text", self._transcript_editor.exportText,
+                        self.transcribedTextChanged)
 
     @Property(str, notify=translatedTextChanged)
     def translatedText(self):
@@ -516,9 +528,16 @@ class AppController(QObject):
 
     @Slot(object)
     def _onTranscriptionComplete(self, result):
-        if isinstance(result, list):
+        if (isinstance(result, list)
+                and all(isinstance(row, StartTimeTranscribeSentence) and row.words
+                        for row in result)):
+            self._transcript_editor.load(result)
+            text = self._transcript_editor.exportText
+        elif isinstance(result, list):
+            self._transcript_editor.load([])
             text = "\n".join(f"[{item.start_time:.2f}] {item.text}" for item in result)
         else:
+            self._transcript_editor.load([])
             text = str(result)
     
         self._set_value("_transcribed_text", text, self.transcribedTextChanged)
@@ -612,12 +631,13 @@ class AppController(QObject):
         self._translation_worker = None
         self._translation_thread = None
 
-    def _save_text(self, title, suggested_name, content):
+    def _save_text(self, title, suggested_name, content,
+                   file_filter="SRT Files (*.srt);;Text Files (*.txt);;All Files (*)"):
         file_path, _ = QFileDialog.getSaveFileName(
             None,
             title,
             suggested_name,
-            "SRT Files (*.srt);;Text Files (*.txt);;All Files (*)",
+            file_filter,
         )
         if not file_path:
             return
@@ -631,6 +651,12 @@ class AppController(QObject):
     @Slot(str)
     def saveTranscription(self, content):
         self._save_text("Save transcription", "transcription.srt", content)
+
+    @Slot()
+    def saveEditedTranscription(self):
+        self._save_text("Save transcription", "transcription.txt",
+                        self._transcript_editor.exportText,
+                        "Text Files (*.txt);;All Files (*)")
 
     @Slot(str)
     def saveTranslation(self, content):

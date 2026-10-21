@@ -297,7 +297,7 @@ ApplicationWindow {
 
                                     CheckBox {
                                         id: timestampCheck
-                                        text: "Generate SRT timestamps"
+                                        text: "Include timestamps"
                                         checked: true
                                     }
 
@@ -331,14 +331,26 @@ ApplicationWindow {
                                     }
                                     Item { Layout.fillWidth: true }
                                     Text {
-                                        text: transcriptionEditor.length + " characters"
+                                        text: appController.transcriptEditor.count > 0
+                                              ? appController.transcriptEditor.count + " lines"
+                                              : transcriptionEditor.length + " characters"
                                         color: "#94a3b8"
                                         font.pixelSize: 11
                                     }
                                 }
 
+                                TranscriptEditor {
+                                    id: boundaryEditor
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    visible: appController.transcriptEditor.count > 0
+                                    enabled: !appController.transcriptionBusy
+                                    editorModel: appController.transcriptEditor
+                                }
+
                                 ScrollView {
                                     id: transcriptionEditorScroll
+                                    visible: appController.transcriptEditor.count === 0
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     clip: true
@@ -371,11 +383,20 @@ ApplicationWindow {
                                     Item { Layout.fillWidth: true }
                                     AppButton {
                                         text: "Save as…"
-                                        enabled: transcriptionEditor.text.length > 0
+                                        enabled: !appController.transcriptionBusy
+                                                 && (appController.transcriptEditor.count > 0
+                                                     || transcriptionEditor.text.length > 0)
                                         fillColor: "#0f766e"
                                         hoverColor: "#115e59"
                                         pressedColor: "#134e4a"
-                                        onClicked: appController.saveTranscription(transcriptionEditor.text)
+                                        onClicked: {
+                                            if (appController.transcriptEditor.count > 0) {
+                                                if (boundaryEditor.commitEdit())
+                                                    appController.saveEditedTranscription()
+                                            } else {
+                                                appController.saveTranscription(transcriptionEditor.text)
+                                            }
+                                        }
                                     }
                                 }
                             }

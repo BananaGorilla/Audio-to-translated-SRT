@@ -107,6 +107,8 @@ class TranscriberWidget(QWidget):
         self.transcribe_thread.finished.connect(lambda: self.transcribe_button.setEnabled(True))
     
     def on_transcribe_done(self, text):
+        if isinstance(text, list):
+            text = "\n".join(f"[{row.start_time:.2f}] {row.text}" for row in text)
         self.text_edit.setText(text)
         self.status_label.setText("Transcription complete")
         self.transcribe_thread.quit()

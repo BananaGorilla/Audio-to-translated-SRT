@@ -1,7 +1,6 @@
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot
 import logging
-import re
 from workers.common_tools import create_ai_client
 from workers.MediaDownload import find_ffmpeg_executable
 from prompt.loader import load_transcription_prompt
@@ -9,7 +8,7 @@ import config
 import subprocess
 import os
 import tempfile
-from workers.TranscriptionDataclass import StartTimeTranscribeSentence
+from workers.TranscriptionDataclass import compile_whisper_rows
 
 logger = logging.getLogger(__name__)
 
@@ -163,68 +162,19 @@ class AudioTranscribeWorker(QObject):
         logger.info("Transcription completed successfully.")
 
         if(self.timestamp_needed):
-            transcribed_items = []
-            for sentence in self.compile_whisper_with_timestamp_and_start_time(
-                words=response.words,
-                segments=response.segments,
-            ):
-                transcribed_items.append(StartTimeTranscribeSentence(
-                    start_time=sentence['start'],
-                    text=sentence['text']
-                ))
-
-            transcribed_text = "\n".join(
-                f"[{item.start_time:.2f}] {item.text}"
-                for item in transcribed_items
-            )
+            transcribed_text = compile_whisper_rows(response.words, response.segments,
+                                                   AUDIO_PAUSE_SECONDS)
         else:
             transcribed_text = (response if isinstance(response, str) else getattr(response, "text", str(response)))
 
-        print(transcribed_text)
         self.transcribe_complete.emit(transcribed_text)
 
     def compile_whisper_with_timestamp_and_start_time(
         self, words, segments, pause_seconds=AUDIO_PAUSE_SECONDS
     ):
-        """Group words by pauses and retain punctuation from segment text.
-
-        The words and segments must contain the same words in the same order.
-        """
-        source = " ".join(segment.text.strip() for segment in segments)
-        sentences = []
-        cursor = 0
-        sentence_start = 0
-        start_time = None
-        trailing_punctuation = re.compile(r"""[,.!?;:，。！？；：、…"'”’)\]}]*""")
-
-        for i, word in enumerate(words):
-            match = re.compile(
-                re.escape(word.word.strip()), re.IGNORECASE
-            ).search(source, cursor)
-            if match is None:
-                raise ValueError(f"Cannot align word: {word.word!r}")
-
-            if start_time is None:
-                start_time = word.start
-
-            cursor = trailing_punctuation.match(source, match.end()).end()
-
-            next_word = words[i + 1] if i + 1 < len(words) else None
-            long_pause = (
-                next_word is not None
-                and next_word.start - word.end >= pause_seconds
-            )
-
-            if long_pause or next_word is None:
-                end = len(source) if next_word is None else cursor
-                sentences.append({
-                    "start": start_time,
-                    "text": source[sentence_start:end].strip(),
-                })
-                sentence_start = end
-                start_time = None
-
-        return sentences
+        """Compatibility helper for callers that only need start times/text."""
+        return [{"start": row.start_time, "text": row.text}
+                for row in compile_whisper_rows(words, segments, pause_seconds)]
 
     @Slot()
     def run_local(self):
