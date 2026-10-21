@@ -87,7 +87,39 @@ Models that we support currently:
 # Transcription
 Upload your audio file (.wav or .mp3) and select the language of this audio clip. Then you can click the "Transcribe" button to start the transcription. 
 
-The transcription will be shown in the text editor where you can check and edit the output. Once you have done, click "Save" to save the file and it will be in the same folder, named "output_transcribe.srt"
+The transcription appears in the editor, where you can check and edit the
+output. Click **Save as…** to choose an output file and folder.
+
+## Edit Whisper transcript boundaries
+
+Select **OpenAI Whisper** in Settings and enable **Include timestamps** before
+transcribing. Timestamped Whisper results appear as editable lines. Blue word
+tokens can be dragged using exactly two moves:
+
+- Drag the **first word** onto the previous line to append it there.
+- Drag the **last word** onto the next line to prepend it there.
+
+The **First word ↑** and **Last word ↓** buttons perform the same moves and can
+be reached with the keyboard. Moving the only word out of a line removes that
+empty line. Punctuation travels with its word; word times stay attached to the
+original audio, and line timestamps update to the first remaining word.
+
+Choose **Edit / Split** to correct text. To split a line, place the cursor
+between words and select **Split here**. Unchanged words retain their original
+timing. If a correction makes the timing at a new boundary uncertain, the app
+asks for a time in seconds or `m:ss.sss` instead of estimating it. **Undo** and
+**Redo** (including their standard keyboard shortcuts) apply to edits, splits,
+and word moves.
+
+**Save as…** exports the current lines as timestamped UTF-8 text, with a default
+name of `transcription.txt`. This file does not preserve word timing links or
+undo history for another session. Other transcription modes continue using the
+plain text editor.
+
+The Python `TranscriptEditorModel` class owns the editing rules and history;
+the separate `ui/TranscriptEditor.qml` and `ui/TranscriptWord.qml` components
+handle display and dragging. Run the regression checks with
+`venv/bin/python -m unittest discover -s tests -v` (or your Python environment).
 
 # Translation
 Upload your `.srt` file and select the original language and target translation language. Click the "Translate" button and it will start the translation.
